@@ -1,1 +1,5 @@
 .Rproj.user
+Project_notes.Rmd
+Project_notes.html
+data/*.xlsx
+data/*.csv
