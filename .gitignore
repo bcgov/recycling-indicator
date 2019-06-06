@@ -1,10 +1,5 @@
 .Rproj.user
 Project_notes.Rmd
 Project_notes.html
-<<<<<<< HEAD
-Data/*.xlsx
-Data/*.csv
-=======
-data/*.xlsx
-data/*.csv
->>>>>>> 309ef349c56e346d23d5507cad5ff6c48f9fad34
+data/EPR annual report info roll up 2017.xlsx
+
