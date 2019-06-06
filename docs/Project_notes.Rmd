@@ -1,0 +1,212 @@
+---
+title: "Project_Notes"
+author: "G Perkins"
+date: "June 5, 2019"
+output: 
+  html_document: 
+    toc : true
+    toc_float: 
+      collapsed: false
+      smooth_scroll: false
+      
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# EPR: Project Notes
+
+The dataset provide as part of environment reporting legislation in pdf format and has been transposed to an excel. Detailed informatio about the program can be found here <https://www2.gov.bc.ca/gov/content/environment/waste-management/recycling/product-stewardship> 
+
+This indicator will be replacing the tire recycling indicator<https://www2.gov.bc.ca/gov/content/environment/research-monitoring-reporting/reporting/environmental-reporting-bc/sustainability-indicators>
+
+
+## Initial data summary: 
+
+Main indicators: 
+
+- Beverage containers 
+- Oil 
+- Tires
+- Paint-Flam_Pest
+- Elect
+- Lead-Acid Batteries 
+- Packaging and Printed Paper
+
+
+Along with the BC population measures as of populations for 2018 and program financials and population estimates. 
+
+# Beverage containers. 
+Collected from multiple groups: Encorp Pacific (Canada), BC Brewers Recycles Collection Council. Both of these collect data on the units collected, weight collection (tonnes) with population data from 2006 - 2017. There is also some financial data ( revenue/ expenditure /deposits charged / units moved) and other (CO2 Equivalent Reduced (tonnes), weight of material)
+
+Data exploration points to consider:  
+
+- group Encorp and BCBRCC data together by Abcolute collection units Collected per regional district 
+- BCBRC years may be different. 
+- use popultaion rates reported in BCBRCC as first pass. (seperate csv)
+- timing diffrence due to 2007/08	2008/09	2009/10 BCBRCC reported as financial years to March 31st 
+- some merged cells may be problemtic in xlsx/csv processing 
+- comox/strathcona split into two regions in 2011 onwards only in the Encorp data set - recorded seperately for BRCC.
+- liquor distribution branch ( 2000 - 2006) only active for short time. 
+- Error in 2017 data set in per capita returns for BRCC, better to work off the raw data sets. 
+
+Some notes of caution
+
+- ** FINANCE NOTE: Not all programs report expenditure, and information is not available for all years. These figures represent 'reported' expenditure only (i.e. that included in published annual reports) and should not be taken as total costs of EPR programs.	
+- ** OTHER CATERGORY NOTE: Reduced Pollutants refers to pollutants that would have been produced if BLD's recycling system did not exist, and the bottles they would have recycled were instead replaced by containers made from virgin materials.	
+
+
+Some general conclusions 
+
+- Data can be split in geographic (by regions) or a-spacial (BC wide). 
+- Regional data: units and tonnes of recycled material & combine with population
+- BC wide data: Financial metrics/ units moved / other (tonnes of emisions etc. )
+
+
+- Key information to work with raw values, finance data and units, 
+- Finance data is BC wide, 
+- recycling data is regional based. 
+
+
+
+## Manual processsing
+convert to csv, add company name column and a measure catergory (priority measure, financial, Units Moved,other )
+create a seperate population cvs to be used with the other recycling metrics. 
+
+- create a single pop csv to use in the analysis 
+
+## Data exploration 
+read in the data
+
+```{r loadlibs, echo=FALSE,include = FALSE}
+x <- c("dplyr","ggplot2","tidyr","stringr","here","reshape") 
+lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
+
+```
+
+```{r loaddata, echo=TRUE,include = TRUE}
+## Load  data files
+setwd("C:/Temp/Github/recycling-indicator/")
+data.dir <- "data/"
+rdata<- read.csv(paste(data.dir,"bev.csv",sep = ""))
+source('00_Functions.R')
+
+#head(rdata)
+
+# extract the population data and export as csv
+pop <- rdata %>% dplyr::filter(Measure == 'Population-') %>%
+         dplyr::select(-c(Company,Catergory,Measure))
+```
+
+## Explore the non spatial data (all regions combined): Financial, units mooved and other
+1) Financial 
+
+```{r financial, echo=TRUE,include = TRUE}
+# Grab the financial data
+fdata <- rdata %>% dplyr::filter(Catergory == 'Financial') %>%
+          dplyr::select(-c(Catergory,Region)) %>%
+          dplyr::filter(!Company == 'EncorpPacific_BRCCC') %>%
+          gather("year", "n",3:20)
+#fdata$n = sub("$","",fdata$n)  # get rid of x on year column
+fdata$n <- replaceDollars(fdata$n) # fix the fromatting in numeric
+fdata$n <- replaceCommas(fdata$n) # fix the fromatting in numeric
+fdata$n.m <-fdata$n/1000000
+fdata$year = sub("X","",fdata$year)  # get rid of x on year column
+
+sum.fdata <- fdata %>% group_by(Measure,year) %>%
+  summarise(total = sum(n.m,na.rm = TRUE))
+```
+
+### How does the amount of revenue influence the number of unclaimed deposits?
+
+```{r unclaimed, echo=TRUE,include = TRUE}
+to.keep <- c('Unclaimed Deposits','Expenditure-Consumer Awareness')
+
+sum.fdata <- sum.fdata %>%
+  filter(Measure %in% to.keep )
+# Does spending more on consumer awareness decrease unclaimed deposits
+    ggplot(sum.fdata,aes(year,total,fill=Measure)) +
+      geom_bar(stat="identity",position="dodge") +
+      labs(title="Unclaimed deposits and consumer-expenditure", x = "Year", y = " Amount ($1,000,000)")
+    #ggsave(paste('out/',"01_Beverage_UnitsMoved.png"))
+
+```
+
+There is not a strong correlation between with awareness, may need to adjust this per unit? or check if the awareness expenditure is for multiple programs (ECPOR and BCRCCC)
+
+2) Units Moved
+Is there a difference in the units moved (recoved or sold over time?)
+
+```{r Units moved , echo=TRUE,include = TRUE}
+udata <- rdata %>% dplyr::filter(Catergory == 'Units Moved') %>%
+  dplyr::select(-c(Catergory,Region))%>%
+  dplyr::filter(!Company == 'EncorpPacific_BRCCC') %>%
+  dplyr::filter(!Measure == 'Recovery Rate (%)  Regulation Target 75%') %>%
+  gather("year", "n",3:20)
+
+udata$n <- replaceCommas(udata$n) # fix the fromatting in numeric
+udata$n.m <-udata$n/1000000
+udata$year = sub("X","",udata$year)  # get rid of x on year column
+
+# summarise per year
+sum.udata <- udata %>% group_by(Measure,year) %>%
+  summarise(total = sum(n.m,na.rm = TRUE))
+
+  # make a pretty graph
+  ggplot(sum.udata,aes(year,total,fill=Measure)) +
+    geom_bar(stat="identity",position="dodge") +
+    labs(title="Recycled Units Returned and Sold", x = "Year", y = "Total no. (millions)")
+   # ggsave(paste('out/',"01_Beverage_UnitsMoved.png"))
+
+ 
+```
+   
+   Appears to be a gap in the 2007 and 2008 year that needs to be checked as units show large decrease. 
+   Perhaps better to show the recovery rate, rather than recoved and sold (two verus one number)
+   
+```{r Recovery rate  , echo=TRUE,include = TRUE}    
+    #calculate the recovery rate and make a line plot
+sum.udata1 <-  udata %>% group_by(Measure,year) %>%
+  summarise(total = sum(n.m,na.rm = TRUE)) %>%
+  spread(., Measure,total)
+
+sum.udata1$RecoveryRate = sum.udata1$'Units Recovered' / sum.udata1$'Units Sold' *100
+sum.udata1 <- sum.udata1[-1,]
+
+    ggplot(sum.udata1, aes(x = year, y = RecoveryRate))+
+      geom_point() +
+      ylim(60,100) +
+      geom_hline(yintercept = 75, color = "red", lty = 2) +
+      labs(title="Recycled Units Recovery Rate (%)", x = "Year", y = "Recovery Rate %")
+      #ggsave(paste('out/',"02_Beverage_UnitsMoved.png"))
+
+```
+
+3. Other catergory. 
+This includes data on the amount of emmission "saved/reduced" and total volumes 
+
+```{r, echo = TRUE}
+odata <- rdata %>% dplyr::filter(Catergory == 'Other') %>%
+    dplyr::select(-c(Company, Catergory,Region)) %>%
+    gather("year", "n",2:19)
+odata$n <- replaceCommas(odata$n) # fix the fromatting in numeric
+odata$n.t <-odata$n/1000
+odata$year = sub("X","",odata$year)  # get rid of x on year column
+odata$Measure = sub("tonnes","Tonnes",odata$Measure)  # get rid of x on year column
+
+odata <- odata %>% group_by(Measure,year) %>%
+  summarise(total = sum(n.t,na.rm = TRUE))
+
+ggplot(odata, aes(year,total,fill=Measure))+
+  geom_bar(stat="identity",position="dodge") +
+  labs(title="Tonnes of material and reduction of pollutants", x = "Year", y = "Tonnes (thousands)") +
+  scale_y_continuous(limits = c(0,250))
+
+```
+ 
+This plot could be reduced or split into two plots emissions saved and emissions and potentially weight of material recycled? 
+
+
+
+
