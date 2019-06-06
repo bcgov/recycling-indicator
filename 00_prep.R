@@ -34,17 +34,50 @@ pop <- rdata %>% dplyr::filter(Measure == 'Population-') %>%
           dplyr::select(-c(Company,Catergory,Measure))
 write.csv(pop, paste(data.dir,"popbc.csv",sep = ""), row.names = FALSE)
 
+
+## STILL TO COMPLETE
+
 -------------------------------------------------------
 # Grab the financial data
 fdata <- rdata %>% dplyr::filter(Catergory == 'Financial') %>%
-          dplyr::select(-c(Catergory,Region))
+          dplyr::select(-c(Catergory,Region)) %>%
+          dplyr::filter(!Company == 'EncorpPacific_BRCCC') %>%
+          gather("year", "n",3:20)
+#fdata$n = sub("$","",fdata$n)  # get rid of x on year column
+fdata$n <- replaceDollars(fdata$n) # fix the fromatting in numeric
+fdata$n <- replaceCommas(fdata$n) # fix the fromatting in numeric
+fdata$n.m <-fdata$n/1000000
+fdata$year = sub("X","",fdata$year)  # get rid of x on year column
 
-fdata <- fdata %>% group_by(Measure)
+# unique(fdata$Measure)
+sum.fdata <- fdata %>% group_by(Measure,year) %>%
+  summarise(total = sum(n.m,na.rm = TRUE))
+
+  to.remove <-c("Total reported revenues - Encorp","Total reported expenditure* - Encorp","Total reported expenditure - excluding deposits refunded* - Encorp","Total deposits collected Encorp","Total deposits refunded Encorp")
+  #to.keep <- c('Deposits Charged','Deposits Refunded','Expenditure-Consumer Awareness')
+  to.keep <- c('Unclaimed Deposits','Expenditure-Consumer Awareness')
+
+   sum.fdata <- sum.fdata %>%
+  filter(Measure %in% to.keep )
+
+
+
+#Deposits charged and refunded over time?
+unique(fdata$Measure)
+
+# Does spending more on consumer awareness decrease unclaimed deposits
+    ggplot(sum.fdata,aes(year,total,fill=Measure)) +
+      geom_bar(stat="identity",position="dodge") +
+      labs(title="Unclaimed deposits and consumer-expenditure", x = "Year", y = " Amount ($1,000,000)")
+    #ggsave(paste('out/',"01_Beverage_UnitsMoved.png"))
+
+
+## may need to correct per unit
+
 
 
 
 -------------------------------------------------------
-
 # Grab the units moved
 udata <- rdata %>% dplyr::filter(Catergory == 'Units Moved') %>%
   dplyr::select(-c(Catergory,Region))%>%
@@ -56,8 +89,6 @@ udata$n <- replaceCommas(udata$n) # fix the fromatting in numeric
 udata$n.m <-udata$n/1000000
 udata$year = sub("X","",udata$year)  # get rid of x on year column
 
-
-
 # summarise per year
 sum.udata <- udata %>% group_by(Measure,year) %>%
   summarise(total = sum(n.m,na.rm = TRUE))
@@ -66,8 +97,9 @@ sum.udata <- udata %>% group_by(Measure,year) %>%
   ggplot(sum.udata,aes(year,total,fill=Measure)) +
     geom_bar(stat="identity",position="dodge") +
     labs(title="Recycled Units Returned and Sold", x = "Year", y = "Total no. (millions)")
+    ggsave(paste('out/',"01_Beverage_UnitsMoved.png"))
 
-  #calculate the recovery rate and make a line plot
+    #calculate the recovery rate and make a line plot
 sum.udata1 <-  udata %>% group_by(Measure,year) %>%
   summarise(total = sum(n.m,na.rm = TRUE)) %>%
   spread(., Measure,total)
@@ -75,69 +107,37 @@ sum.udata1 <-  udata %>% group_by(Measure,year) %>%
 sum.udata1$RecoveryRate = sum.udata1$'Units Recovered' / sum.udata1$'Units Sold' *100
 sum.udata1 <- sum.udata1[-1,]
 
-ggplot(sum.udata1, aes(x = year, y = RecoveryRate))+
-  geom_point() +
-  ylim(60,100) +
-  geom_hline(yintercept = 75, color = "red", lty = 2) +
-  labs(title="Recycled Units Recovery Rate", x = "Year", y = "Recovery Rate %")
+    ggplot(sum.udata1, aes(x = year, y = RecoveryRate))+
+      geom_point() +
+      ylim(60,100) +
+      geom_hline(yintercept = 75, color = "red", lty = 2) +
+      labs(title="Recycled Units Recovery Rate (%)", x = "Year", y = "Recovery Rate %")
+      ggsave(paste('out/',"02_Beverage_UnitsMoved.png"))
+
+----------------------------------------------------------------
+
+# Grab data from "other catergory"
+
+odata <- rdata %>% dplyr::filter(Catergory == 'Other') %>%
+    dplyr::select(-c(Company, Catergory,Region)) %>%
+    gather("year", "n",2:19)
+odata$n <- replaceCommas(odata$n) # fix the fromatting in numeric
+odata$n.t <-odata$n/1000
+odata$year = sub("X","",odata$year)  # get rid of x on year column
+odata$Measure = sub("tonnes","Tonnes",odata$Measure)  # get rid of x on year column
+
+odata <- odata %>% group_by(Measure,year) %>%
+  summarise(total = sum(n.t,na.rm = TRUE))
+
+
+# split in +ve and -ve amounts
+# make a nice plot
+ggplot(odata, aes(year,total,fill=Measure))+
+  geom_bar(stat="identity",position="dodge") +
+  labs(title="Tonnes of material and reduction of pollutants", x = "Year", y = "Tonnes (thousands)") +
+  scale_y_continuous(limits = c(0,250))
+ggsave(paste('out/',"03_Beverage_Other.png"))
 
 
 
 
-# create a nice plot :
-
-ggplot(sum.udata,aes(year,total,fill=Measure)) +
-  geom_bar(stat="identity",position="dodge")
-  labs(title="Recycled units returned and sold", y = "Year", x = "Total no.")
-
-
-
-ggplot(sum.udata,aes(x = year)) +
-  geom_area(aes(y=`Units Recovered`, fill="units_recovered")) +
-  geom_area(aes(y=`Units Sold`, fill="units_sold"))
-labs(title="Area Chart of Returns Percentage",
-     subtitle="From Wide Data format",
-     caption="Source: Economics",
-     y="Returns %") +  # title and caption
-  #scale_x_date(labels = lbls, breaks = brks) +  # change to monthly ticks and labels
-  scale_fill_manual(name="",
-                    values = c("psavert"="#00ba38", "uempmed"="#f8766d")) +  # line color
-  theme(panel.grid.minor = element_blank())  # turn off minor grid)
-
-
-
-
-
-
-
-  library(ggplot2)
-  library(lubridate)
-  theme_set(theme_bw())
-
-  df <- economics[, c("date", "psavert", "uempmed")]
-  df <- df[lubridate::year(df$date) %in% c(1967:1981), ]
-
-  # labels and breaks for X axis text
-  brks <- df$date[seq(1, length(df$date), 12)]
-  lbls <- lubridate::year(brks)
-
-  # plot
-  ggplot(df, aes(x=date)) +
-    geom_area(aes(y=psavert+uempmed, fill="psavert")) +
-    geom_area(aes(y=uempmed, fill="uempmed")) +
-    labs(title="Area Chart of Returns Percentage",
-         subtitle="From Wide Data format",
-         caption="Source: Economics",
-         y="Returns %") +  # title and caption
-    scale_x_date(labels = lbls, breaks = brks) +  # change to monthly ticks and labels
-    scale_fill_manual(name="",
-                      values = c("psavert"="#00ba38", "uempmed"="#f8766d")) +  # line color
-    theme(panel.grid.minor = element_blank())  # turn off minor grid)
-
-
-
-  group_by(Measure) %>%
-  summarise(sum = sum())
-
-
-paste(data.dir)

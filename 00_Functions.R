@@ -12,8 +12,15 @@
 
 # Functions to run as part of the recycling indicator
 
-#-- Function to convert number to
+
+
+#-- Function to format financial columns
 
 replaceCommas<-function(x){
   x<-as.numeric(gsub("\\,", "", x))
 }
+
+replaceDollars<-function(x){
+  x<-as.character(gsub("\\$", "", x))
+}
+
