@@ -35,6 +35,31 @@ pop <- rdata %>% dplyr::filter(Measure == 'Population-') %>%
 write.csv(pop, paste(data.dir,"popbc.csv",sep = ""), row.names = FALSE)
 
 
+
+
+
+# extract the raw unit data and add with population and maps....
+
+
+- Add together the data from the multiple organisation and calculate per capita.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 ## STILL TO COMPLETE
 
 -------------------------------------------------------
@@ -60,21 +85,14 @@ sum.fdata <- fdata %>% group_by(Measure,year) %>%
    sum.fdata <- sum.fdata %>%
   filter(Measure %in% to.keep )
 
-
-
 #Deposits charged and refunded over time?
-unique(fdata$Measure)
+#unique(fdata$Measure)
 
 # Does spending more on consumer awareness decrease unclaimed deposits
     ggplot(sum.fdata,aes(year,total,fill=Measure)) +
       geom_bar(stat="identity",position="dodge") +
       labs(title="Unclaimed deposits and consumer-expenditure", x = "Year", y = " Amount ($1,000,000)")
     #ggsave(paste('out/',"01_Beverage_UnitsMoved.png"))
-
-
-## may need to correct per unit
-
-
 
 
 -------------------------------------------------------
@@ -136,7 +154,7 @@ ggplot(odata, aes(year,total,fill=Measure))+
   geom_bar(stat="identity",position="dodge") +
   labs(title="Tonnes of material and reduction of pollutants", x = "Year", y = "Tonnes (thousands)") +
   scale_y_continuous(limits = c(0,250))
-ggsave(paste('out/',"03_Beverage_Other.png"))
+#ggsave(paste('out/',"03_Beverage_Other.png"))
 
 
 
