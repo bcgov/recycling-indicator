@@ -74,7 +74,7 @@ Some general conclusions
 convert to csv, add company name column and a measure catergory (priority measure, financial, Units Moved,other )
 create a seperate population cvs to be used with the other recycling metrics. 
 
-- create a single pop csv to use in the analysis 
+- create a single pop csv to use in the analysis, error in raw data (population for Caribou missing 10,000)
 
 ## Data exploration 
 read in the data

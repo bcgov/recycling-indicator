@@ -12,7 +12,7 @@
 
 ## Load in libraries
 
-x <- c("dplyr","ggplot2","tidyr","stringr","here","reshape") #raster","sp","sf","rgdal","xlsx","rJava","tibble","mapview","gtools")
+x <- c("dplyr","ggplot2","tidyr","stringr","here","reshape", "bcmaps", "sf") #raster","sp","sf","rgdal","xlsx","rJava","tibble","mapview","gtools")
 lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
 
 
@@ -22,26 +22,139 @@ source('00_Functions.R')
 data.dir <- "data/"
 
 rdata<- read.csv(paste(data.dir,"bev.csv",sep = ""))
+rdKey <- read.csv(paste(data.dir,"RD_key.csv",sep = ""))
 
 head(rdata)
 unique(rdata$Company)
 unique(rdata$Catergory)
 unique(rdata$Measure)
 
-------------------------------------------------------
+#------------------------------------------------------
 # extract the population data and export as csv
 pop <- rdata %>% dplyr::filter(Measure == 'Population-') %>%
           dplyr::select(-c(Company,Catergory,Measure))
-write.csv(pop, paste(data.dir,"popbc.csv",sep = ""), row.names = FALSE)
+#write.csv(pop, paste(data.dir,"popbc.csv",sep = ""), row.names = FALSE)
 
+pop.long <- pop %>% gather("year", "n",2:19)
+pop.long$year = sub("X","",pop.long$year)  # get rid of x on year column
+pop.long$pop <- replaceCommas(pop.long$n) # fix the fromatting in numeric
+head(pop.long)
 
-
-
+#-------------------------------------------------------
 
 # extract the raw unit data and add with population and maps....
+pdata <- rdata %>% dplyr::filter(Catergory == 'Priority Measures') %>%
+  dplyr::select(-c(Catergory)) %>%
+  dplyr::filter(!Company == 'EncorpPacific_BRCCC')%>%
+  dplyr::filter(Measure %in% c("Absolute Collection-Units Collected-","Absolute Collection-Weight Collected (Tonnes)-")) %>%
+  gather("year", "n",4:21)
+
+pdata$year = sub("X","",pdata$year)  # get rid of x on year column
+pdata$n <- replaceCommas(pdata$n) # fix the fromatting in numeric
+
+# group together the multiple companies
+sum.pdata <- pdata %>% group_by(Measure, Region, year) %>%
+  summarise(total = sum(n,na.rm = TRUE))
+
+      ## do a basic graph to check it out
+      #ggplot(sum.pdata,aes(year,total,fill=Measure)) +
+      #  geom_bar(stat="identity",position="dodge") +
+      #  labs(title="Unclaimed deposits and consumer-expenditure", x = "Year", y = " Amount ($1,000,000)")
+
+# merge in the pop.long form data
+ppdata <- left_join(sum.pdata,pop.long, by = c("Region","year")) %>%
+  dplyr::select(-c('n')) %>%
+  mutate(unit.per.cap = total / pop)
+
+# break up into weight and units
+units.per.cap <- ppdata %>% filter(Measure == 'Absolute Collection-Units Collected-' )
+weight.per.cap <-  ppdata %>% filter(Measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
+
+    ## Units per capita
+    ggplot(units.per.cap,aes(year,unit.per.cap)) + facet_wrap(~Region)+
+      geom_bar(stat="identity",position="dodge") +
+      labs(title="Regional Units Recycled per capita", x = "Year", y = " units per capita")
+    ggsave(paste('out/',"04_Beverage_UnitsPerCap.png"))
+
+    ## weight per capita
+    ggplot(weight.per.cap,aes(year,unit.per.cap)) + facet_wrap(~Region)+
+      geom_bar(stat="identity",position="dodge") +
+      labs(title="Regional weight of recycling (tonnes) per capita", x = "Year", y = "weight per cap (tonnes")
+    ggsave(paste('out/',"04_Beverage_weightPerCap.png"))
 
 
-- Add together the data from the multiple organisation and calculate per capita.
+#-------------------------
+# MAke a map to show spatial context
+
+library(leaflet)
+library(mapview)
+
+# addd the BC boundary data
+bc <- bc_bound() # plot(st_geometry(bc))
+rd <- regional_districts()
+rd.wgs<-st_transform(rd,4326) # convert to lat longs
+
+# join the abbreviations to the data
+
+
+#units per cap
+upc <- left_join(units.per.cap, rdKey, by = "Region")
+
+upc.sp <- merge(rd.wgs,upc, by.x = "ADMIN_AREA_ABBREVIATION", by.y="Abrev")
+
+m <- leaflet(data = upc.sp )%>%
+  addTiles() %>%
+  addPolygons(fillColor = "green")
+
+m
+
+rd.names <- rd[,c("ADMIN_AREA_ABBREVIATION","ADMIN_AREA_NAME")]
+
+
+
+
+
+st_geometry(rd)
+
+unique(rd$ADMIN_AREA_ABBREVIATION)
+
+leaflet(data = rd.wgs)%>%
+  addTiles() %>%
+  addPolygons(fillColor = "green")
+
+
+
+    water_locations_map <- leaflet(rf) %>%
+      addTiles() %>%
+      addCircleMarkers(lng = ~location.longitude,
+                       lat = ~location.latitude)
+
+
+mapview(rd)
+
+
+    mapview()
+    leaflet(rd)%>%
+    addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
+               opacity = 1.0, fillOpacity = 0.5,
+               fillColor = ~colorQuantile("YlOrRd", ADMIN_AREA_NAME)(ADMIN_AREA_NAME))
+
+
+bc <- bc_bound()
+plot(st_geometry(bc))
+
+rd <- regional_districts()
+
+
+kootenays <- rd[rd$ADMIN_AREA_NAME == "Regional District of Central Kootenay", ]
+plot(st_geometry(kootenays), col = "lightseagreen", add = TRUE)
+
+
+sum.pdata1 <- sum.pdata %>% spread(Measure,total)
+
+
+sum.pdata1 <sum.pdata1 %>%
+  mutate(units.per.capita = "Absolute Collection-Units Collected-" / "Population-")
 
 
 
@@ -50,17 +163,6 @@ write.csv(pop, paste(data.dir,"popbc.csv",sep = ""), row.names = FALSE)
 
 
 
-
-
-
-
-
-
-
-
-
-
-## STILL TO COMPLETE
 
 -------------------------------------------------------
 # Grab the financial data
