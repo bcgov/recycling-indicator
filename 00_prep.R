@@ -12,7 +12,7 @@
 
 ## Load in libraries
 
-x <- c("dplyr","ggplot2","tidyr","stringr","here","reshape", "bcmaps", "sf") #raster","sp","sf","rgdal","xlsx","rJava","tibble","mapview","gtools")
+x <- c("dplyr","ggplot2","tidyr","stringr","reshape", "bcmaps", "sf") #raster","sp","sf","rgdal","xlsx","rJava","tibble","mapview","gtools")
 lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
 
 
@@ -24,10 +24,10 @@ data.dir <- "data/"
 rdata<- read.csv(paste(data.dir,"bev.csv",sep = ""))
 rdKey <- read.csv(paste(data.dir,"RD_key.csv",sep = ""))
 
-head(rdata)
-unique(rdata$Company)
-unique(rdata$Catergory)
-unique(rdata$Measure)
+#head(rdata)
+#unique(rdata$Company)
+#unique(rdata$Catergory)
+#unique(rdata$Measure)
 
 #------------------------------------------------------
 # extract the population data and export as csv
@@ -83,6 +83,45 @@ weight.per.cap <-  ppdata %>% filter(Measure == 'Absolute Collection-Weight Coll
     ggsave(paste('out/',"04_Beverage_weightPerCap.png"))
 
 
+    # calculate the provincial average
+    bc.units.per.cap <- units.per.cap %>% na.omit() %>%
+      group_by(year) %>%
+      summarise(BCave = mean(unit.per.cap))
+
+    regional.units.per.cap <- units.per.cap %>% na.omit() %>%
+      group_by(year,Region) %>%
+      summarise(ave = mean(unit.per.cap))
+
+    # join the regional and prov. ave data and calculate the difference
+
+    diff.df <-left_join(regional.units.per.cap,bc.units.per.cap, by = 'year')
+    diff.df <- diff.df %>% mutate(delta = ave-BCave)
+    diff.df$response <- ifelse( diff.df$delta < 0, "below", "above")
+    # calculate the deviation from average
+
+    # Diverging Barcharts
+    p4 <- ggplot(diff.df, aes(x=Region, y=delta,label=delta)) + facet_wrap(~year) +
+      geom_bar(stat='identity', aes(fill=response), width=.5)  +
+     scale_fill_manual(name="Mileage",
+                        labels = c("Above Average", "Below Average"),
+                        values = c("above"="#00ba38", "below"="#f8766d")) +
+      labs(title= "Regional difference from the average BC units per capita recycling") +
+      coord_flip()
+    ggsave(paste('out/',"05_regional_bc_ave_unitsPerCap_per_yr.png"))
+
+    # Diverging Barcharts (all years)
+    p5 <-  ggplot(diff.df, aes(x=Region, y=delta, label = delta)) +
+      geom_bar(stat='identity', aes(fill=response), width=.5)  +
+      scale_fill_manual(name="Mileage",
+                         labels = c("Above Average", "Below Average"),
+                          values = c("above"="#00ba38", "below"="#f8766d")) +
+       labs(title= "Regional difference from the average BC units per capita recycling") +
+      coord_flip()
+     ggsave(paste('out/',"06_regional_bc_ave_unitsPerCap_allyrs.png"))
+
+
+
+
 #-------------------------
 # MAke a map to show spatial context
 
@@ -95,9 +134,6 @@ rd <- regional_districts()
 rd.wgs<-st_transform(rd,4326) # convert to lat longs
 
 # join the abbreviations to the data
-
-
-#units per cap
 upc <- left_join(units.per.cap, rdKey, by = "Region")
 
 upc.sp <- merge(rd.wgs,upc, by.x = "ADMIN_AREA_ABBREVIATION", by.y="Abrev")
@@ -111,50 +147,50 @@ m
 rd.names <- rd[,c("ADMIN_AREA_ABBREVIATION","ADMIN_AREA_NAME")]
 
 
+## make some graphical outputs : STILL TO DO
+
+
+            st_geometry(rd)
+
+            unique(rd$ADMIN_AREA_ABBREVIATION)
+
+            leaflet(data = rd.wgs)%>%
+              addTiles() %>%
+              addPolygons(fillColor = "green")
 
 
 
-st_geometry(rd)
-
-unique(rd$ADMIN_AREA_ABBREVIATION)
-
-leaflet(data = rd.wgs)%>%
-  addTiles() %>%
-  addPolygons(fillColor = "green")
+                water_locations_map <- leaflet(rf) %>%
+                  addTiles() %>%
+                  addCircleMarkers(lng = ~location.longitude,
+                                   lat = ~location.latitude)
 
 
-
-    water_locations_map <- leaflet(rf) %>%
-      addTiles() %>%
-      addCircleMarkers(lng = ~location.longitude,
-                       lat = ~location.latitude)
+            mapview(rd)
 
 
-mapview(rd)
+                mapview()
+                leaflet(rd)%>%
+                addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
+                           opacity = 1.0, fillOpacity = 0.5,
+                           fillColor = ~colorQuantile("YlOrRd", ADMIN_AREA_NAME)(ADMIN_AREA_NAME))
 
 
-    mapview()
-    leaflet(rd)%>%
-    addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
-               opacity = 1.0, fillOpacity = 0.5,
-               fillColor = ~colorQuantile("YlOrRd", ADMIN_AREA_NAME)(ADMIN_AREA_NAME))
+            bc <- bc_bound()
+            plot(st_geometry(bc))
+
+            rd <- regional_districts()
 
 
-bc <- bc_bound()
-plot(st_geometry(bc))
-
-rd <- regional_districts()
+            kootenays <- rd[rd$ADMIN_AREA_NAME == "Regional District of Central Kootenay", ]
+            plot(st_geometry(kootenays), col = "lightseagreen", add = TRUE)
 
 
-kootenays <- rd[rd$ADMIN_AREA_NAME == "Regional District of Central Kootenay", ]
-plot(st_geometry(kootenays), col = "lightseagreen", add = TRUE)
+            sum.pdata1 <- sum.pdata %>% spread(Measure,total)
 
 
-sum.pdata1 <- sum.pdata %>% spread(Measure,total)
-
-
-sum.pdata1 <sum.pdata1 %>%
-  mutate(units.per.capita = "Absolute Collection-Units Collected-" / "Population-")
+            sum.pdata1 <sum.pdata1 %>%
+              mutate(units.per.capita = "Absolute Collection-Units Collected-" / "Population-")
 
 
 
