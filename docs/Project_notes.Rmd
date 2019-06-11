@@ -80,7 +80,8 @@ create a seperate population cvs to be used with the other recycling metrics.
 read in the data
 
 ```{r loadlibs, echo=FALSE,include = FALSE}
-x <- c("dplyr","ggplot2","tidyr","stringr","here","reshape") 
+
+x <- c("dplyr","ggplot2","tidyr","stringr","reshape", "bcmaps", "sf") 
 lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
 
 ```
@@ -97,6 +98,13 @@ source('00_Functions.R')
 # extract the population data and export as csv
 pop <- rdata %>% dplyr::filter(Measure == 'Population-') %>%
          dplyr::select(-c(Company,Catergory,Measure))
+
+pop.long <- pop %>% gather("year", "n",2:19)
+pop.long$year = sub("X","",pop.long$year)  # get rid of x on year column
+pop.long$pop <- replaceCommas(pop.long$n) # fix the fromatting in numeric
+head(pop.long)
+
+
 ```
 
 ## Explore the non spatial data (all regions combined): Financial, units mooved and other
@@ -207,6 +215,104 @@ ggplot(odata, aes(year,total,fill=Measure))+
  
 This plot could be reduced or split into two plots emissions saved and emissions and potentially weight of material recycled? 
 
+## Explore the spatial data sets: Units and weight per capita
+# 
+This includes regional based estimate. Still need to edit the comox strathcoma regions. Also some data entry errors are apparent when calculating the general plots 
+
+```{r explor spatial dataset, echo = TRUE , warn=1}
+# extract the raw unit data and add popultaion data 
+pdata <- rdata %>% dplyr::filter(Catergory == 'Priority Measures') %>%
+  dplyr::select(-c(Catergory)) %>%
+  dplyr::filter(!Company == 'EncorpPacific_BRCCC')%>%
+  dplyr::filter(Measure %in% c("Absolute Collection-Units Collected-","Absolute Collection-Weight Collected (Tonnes)-")) %>%
+  gather("year", "n",4:21)
+# format the data tyep 
+pdata$year = sub("X","",pdata$year)  # get rid of x on year column
+pdata$n <- replaceCommas(pdata$n) # fix the fromatting in numeric
+
+# group together the multiple companies
+sum.pdata <- pdata %>% group_by(Measure, Region, year) %>%
+  summarise(total = sum(n,na.rm = TRUE))
+
+# merge in the pop.long form data
+ppdata <- left_join(sum.pdata,pop.long, by = c("Region","year")) %>%
+  dplyr::select(-c('n')) %>%
+  mutate(unit.per.cap = total / pop)
+```
+No w data is format split this into different units, tonnes and units per capita and create some summary plots 
+
+```{r split into diffrent unirs and make plots, echo = T, results = T}
+# Split data set into weight and units
+units.per.cap <- ppdata %>% filter(Measure == 'Absolute Collection-Units Collected-' )
+weight.per.cap <-  ppdata %>% filter(Measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
+
+    ## Units per capita
+    p1 <- ggplot(units.per.cap,aes(year,unit.per.cap)) + facet_wrap(~Region)+
+      geom_bar(stat="identity",position="dodge") +
+      labs(title="Regional Units Recycled per capita", x = "Year", y = " units per capita")
+   # ggsave(paste('out/',"04_Beverage_UnitsPerCap.png"))
+    p1
+```
+This plots shows some obvious data errors to check. Also highlights need to adjust comox and stracthcona datasets as not being correctly calculated. 
+
+```{r weights per capita, echo = T, results = T}
+    ## weight per capita
+    p2 <- ggplot(weight.per.cap,aes(year,unit.per.cap)) + facet_wrap(~Region)+
+      geom_bar(stat="identity",position="dodge") +
+      labs(title="Regional weight of recycling (tonnes) per capita", x = "Year", y = "weight per cap (tonnes")
+    #ggsave(paste('out/',"04_Beverage_weightPerCap.png"))
+    p2
+
+```
+
+Plot 2 also shows simialr issue with naming to be fixed 
+
+We can also investigate the difference from the provincial average: 
+
+```{r calculate average and }
+
+# calculate the provincial average
+bc.units.per.cap <- units.per.cap %>% na.omit() %>%
+    group_by(year) %>%
+    summarise(BCave = mean(unit.per.cap))
+
+regional.units.per.cap <- units.per.cap %>% na.omit() %>%
+    group_by(year,Region) %>%
+    summarise(ave = mean(unit.per.cap))
+# join the regional and prov. ave data and calculate the difference
+
+diff.df <-left_join(regional.units.per.cap,bc.units.per.cap, by = 'year')
+diff.df <- diff.df %>% mutate(delta = ave-BCave)
+diff.df$response <- ifelse( diff.df$delta < 0, "below", "above")
+    # calculate the deviation from average
+
+    # Diverging Barcharts
+    p4 <- ggplot(diff.df, aes(x=Region, y=delta,label=delta)) + facet_wrap(~year) +
+      geom_bar(stat='identity', aes(fill=response), width=.5)  +
+     scale_fill_manual(name="Mileage",
+                        labels = c("Above Average", "Below Average"),
+                        values = c("above"="#00ba38", "below"="#f8766d")) +
+      labs(title= "Regional difference from the average BC units per capita recycling") +
+      coord_flip()
+    #ggsave(paste('out/',"05_regional_bc_ave_unitsPerCap_per_yr.png"))
+    p4
+    # Diverging Barcharts (all years)
+    p5 <-  ggplot(diff.df, aes(x=Region, y=delta, label = delta)) +
+      geom_bar(stat='identity', aes(fill=response), width=.5)  +
+      scale_fill_manual(name="Mileage",
+                         labels = c("Above Average", "Below Average"),
+                          values = c("above"="#00ba38", "below"="#f8766d")) +
+       labs(title= "Regional difference from the average BC units per capita recycling") +
+      coord_flip()
+    # ggsave(paste('out/',"06_regional_bc_ave_unitsPerCap_allyrs.png"))
+    p5
+```
+
+
+Thoughts on recycling 
+- Map regional data sets for presentation (leaflet)
+- difference maps better than raw values ? Difference to average works with change per year indicated 
+- could present some metrics within graphs (ie non - spatial data sets) 
 
 
 
