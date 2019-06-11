@@ -309,10 +309,67 @@ diff.df$response <- ifelse( diff.df$delta < 0, "below", "above")
 ```
 
 
-Thoughts on recycling 
+Thoughts on Beverage recycling:
+
 - Map regional data sets for presentation (leaflet)
 - difference maps better than raw values ? Difference to average works with change per year indicated 
 - could present some metrics within graphs (ie non - spatial data sets) 
+- Northern Rockies missing population data - need to pull data from stats Canada per year 
 
+
+# Lubraicating Oil, Filters and containers. 
+
+Collection broken in regional and temporal data sets from 2010 to 2017 including: 
+
+- Used oil (litres per person) 
+- Used filters (kg per person) 
+- Containers (kg per person)
+- Antifreeze (kg person)
+
+Data exploration points to consider: 
+Temporal and a-spatial data sets include financial, collection sites, units moved, and end fate for products. 
+Collection sites does not look like much change in trends over time?
+Could be oportunity to combine a number of measure (ie beverage together). Comox and Strathcoma are treated seperatiely in this analysis. 
+
+Could also combine the % recover rate over time for different metrics in a single graph 
+
+```{r loaddata oils, echo=TRUE,include = TRUE}
+## Load  data files
+setwd("C:/Temp/Github/recycling-indicator/")
+data.dir <- "data/"
+rdata<- read.csv(paste(data.dir,"LubOilFilt.csv",sep = ""))
+
+#head(rdata)
+
+# extract the population data and export as csv
+#pop <- rdata %>% dplyr::filter(Measure == 'Population-') %>%
+#         dplyr::select(-c(Company,Catergory,Measure))
+
+#pop.long <- pop %>% gather("year", "n",2:19)
+#pop.long$year = sub("X","",pop.long$year)  # get rid of x on year column
+#pop.long$pop <- replaceCommas(pop.long$n) # fix the fromatting in numeric
+#head(pop.long)
+
+
+```
+
+## Explore the non spatial data (all regions combined): Financial, units mooved and other
+1) Financial 
+
+```{r financial oil, echo=TRUE,include = TRUE}
+# Grab the financial data
+#fdata <- rdata %>% dplyr::filter(Catergory == 'Financial') %>%
+#          dplyr::select(-c(Catergory,Region)) %>%
+#          dplyr::filter(!Company == 'EncorpPacific_BRCCC') %>%
+#          gather("year", "n",3:20)
+#fdata$n = sub("$","",fdata$n)  # get rid of x on year column
+#fdata$n <- replaceDollars(fdata$n) # fix the fromatting in numeric
+#fdata$n <- replaceCommas(fdata$n) # fix the fromatting in numeric
+#fdata$n.m <-fdata$n/1000000
+#fdata$year = sub("X","",fdata$year)  # get rid of x on year column
+
+#sum.fdata <- fdata %>% group_by(Measure,year) %>%
+#  summarise(total = sum(n.m,na.rm = TRUE))
+```
 
 
