@@ -80,17 +80,18 @@ create a seperate population cvs to be used with the other recycling metrics.
 read in the data
 
 ```{r loadlibs, echo=FALSE,include = FALSE}
-x <- c("dplyr","ggplot2","tidyr","stringr","here","reshape") 
-lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
+x <- c("dplyr","ggplot2","tidyr","stringr","here", "envreportutils", "readr") 
+lapply(x, library, character.only = TRUE)
+rm(x)  # load the required packages
 
 ```
 
 ```{r loaddata, echo=TRUE,include = TRUE}
 ## Load  data files
-setwd("C:/Temp/Github/recycling-indicator/")
-data.dir <- "data/"
-rdata<- read.csv(paste(data.dir,"bev.csv",sep = ""))
-source('00_Functions.R')
+# ACT: Removed setwd - shouldn't need to do if in a project or using here
+data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR")
+rdata <- read_csv(paste(data.dir, "bev.csv", sep = "/"), col_types = cols(.default = col_number()))
+source(here::here('00_Functions.R'))
 
 #head(rdata)
 
