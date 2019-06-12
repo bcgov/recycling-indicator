@@ -81,7 +81,7 @@ read in the data
 
 ```{r loadlibs, echo=FALSE,include = FALSE}
 
-x <- c("dplyr","ggplot2","tidyr","stringr","reshape", "bcmaps", "sf") 
+x <- c("dplyr","ggplot2","tidyr","stringr","reshape", "bcmaps", "sf","envreportutils") 
 lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
 
 ```
@@ -89,9 +89,13 @@ lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
 ```{r loaddata, echo=TRUE,include = TRUE}
 ## Load  data files
 setwd("C:/Temp/Github/recycling-indicator/")
-data.dir <- "data/"
-rdata<- read.csv(paste(data.dir,"bev.csv",sep = ""))
+data.dir <- "data"
+#data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to run on O:/
+
 source('00_Functions.R')
+
+rdata<- read.csv(paste(data.dir,"/bev.csv",sep = ""))
+rdKey <- read.csv(paste(data.dir,"/RD_key.csv",sep = ""))
 
 #head(rdata)
 
@@ -317,7 +321,7 @@ Thoughts on Beverage recycling:
 - Northern Rockies missing population data - need to pull data from stats Canada per year 
 
 
-# Lubraicating Oil, Filters and containers. 
+# Lubricating Oil, Filters and containers. 
 
 Collection broken in regional and temporal data sets from 2010 to 2017 including: 
 
@@ -333,25 +337,48 @@ Could be oportunity to combine a number of measure (ie beverage together). Comox
 
 Could also combine the % recover rate over time for different metrics in a single graph 
 
+## Compare regional datasets for priority measures. 
+Note these are already calculated per person (assumung the pop data is correct)
+
+
 ```{r loaddata oils, echo=TRUE,include = TRUE}
-## Load  data files
 setwd("C:/Temp/Github/recycling-indicator/")
-data.dir <- "data/"
-rdata<- read.csv(paste(data.dir,"LubOilFilt.csv",sep = ""))
+odata<- read.csv(paste(data.dir,"/LubOilFilt.csv",sep = ""))
 
-#head(rdata)
+# extract the raw unit data and add with population and maps....
+pdata <- odata %>% dplyr::filter(Catergory == 'Priority Measures') %>%
+  dplyr::filter(!Region == '') %>%
+  gather("year", "n",4:18)
 
-# extract the population data and export as csv
-#pop <- rdata %>% dplyr::filter(Measure == 'Population-') %>%
-#         dplyr::select(-c(Company,Catergory,Measure))
+pdata$year = sub("X","",pdata$year)  # get rid of x on year column
+pdata$n <- replaceCommas(pdata$n) # fix the fromatting in numeric
+pdata$n <- as.numeric(as.character(pdata$n)) # convert to number
+pdata<- pdata[complete.cases(pdata),]
 
-#pop.long <- pop %>% gather("year", "n",2:19)
-#pop.long$year = sub("X","",pop.long$year)  # get rid of x on year column
-#pop.long$pop <- replaceCommas(pop.long$n) # fix the fromatting in numeric
-#head(pop.long)
-
+## do a basic graph to check it out
+ggplot(pdata,aes(year,n,fill=Measure)) +
+  geom_bar(stat="identity",position="dodge") +
+  labs(title="Absolute collection (kg/litres) per person", x = "Year", y = "Collection (kg) per person")
 
 ```
+
+Used oil is a magnitude differnce in volumne. Repeat graph with out USed oil values: 
+
+
+```{r loaddata oils graph 2, echo=TRUE,include = TRUE}
+pdata.1 <- pdata %>% dplyr::filter(!Measure == 'Used Oil - Absolute Collection (litres)-Per Person')
+pdata.1<- pdata.1[complete.cases(pdata.1),]
+
+## do a basic graph to check it out
+ggplot(pdata.1,aes(year,n,fill=Measure)) +
+  geom_bar(stat="identity",position="dodge") +
+  labs(title="Absolute collection (kg) per person", x = "Year", y = "Collection (kg) per person") 
+
+```
+
+
+
+# TO DO STILL : 
 
 ## Explore the non spatial data (all regions combined): Financial, units mooved and other
 1) Financial 
