@@ -17,7 +17,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # EPR: Project Notes
 
-The dataset provide as part of environment reporting legislation in pdf format and has been transposed to an excel. Detailed informatio about the program can be found here <https://www2.gov.bc.ca/gov/content/environment/waste-management/recycling/product-stewardship> 
+The dataset provide as part of environment reporting legislation in pdf format and has been transposed to an excel. Detailed information about the program can be found here <https://www2.gov.bc.ca/gov/content/environment/waste-management/recycling/product-stewardship> 
 
 This indicator will be replacing the tire recycling indicator<https://www2.gov.bc.ca/gov/content/environment/research-monitoring-reporting/reporting/environmental-reporting-bc/sustainability-indicators>
 
@@ -42,12 +42,12 @@ Collected from multiple groups: Encorp Pacific (Canada), BC Brewers Recycles Col
 
 Data exploration points to consider:  
 
-- group Encorp and BCBRCC data together by Abcolute collection units Collected per regional district 
+- group Encorp and BCBRCC data together by Absolute collection units Collected per regional district 
 - BCBRC years may be different. 
-- use popultaion rates reported in BCBRCC as first pass. (seperate csv)
-- timing diffrence due to 2007/08	2008/09	2009/10 BCBRCC reported as financial years to March 31st 
-- some merged cells may be problemtic in xlsx/csv processing 
-- comox/strathcona split into two regions in 2011 onwards only in the Encorp data set - recorded seperately for BRCC.
+- use population rates reported in BCBRCC as first pass. (separate csv)
+- timing difference due to 2007/08	2008/09	2009/10 BCBRCC reported as financial years to March 31st 
+- some merged cells may be problematic in xlsx/csv processing 
+- Comox/Strathcona split into two regions in 2011 onwards only in the Encorp data set - recorded separately for BRCC.
 - liquor distribution branch ( 2000 - 2006) only active for short time. 
 - Error in 2017 data set in per capita returns for BRCC, better to work off the raw data sets. 
 
@@ -59,9 +59,9 @@ Some notes of caution
 
 Some general conclusions 
 
-- Data can be split in geographic (by regions) or a-spacial (BC wide). 
+- Data can be split in geographic (by regions) or aspatial (BC wide). 
 - Regional data: units and tonnes of recycled material & combine with population
-- BC wide data: Financial metrics/ units moved / other (tonnes of emisions etc. )
+- BC wide data: Financial metrics/ units moved / other (tonnes of emissions etc. )
 
 
 - Key information to work with raw values, finance data and units, 
@@ -70,9 +70,9 @@ Some general conclusions
 
 
 
-## Manual processsing
-convert to csv, add company name column and a measure catergory (priority measure, financial, Units Moved,other )
-create a seperate population cvs to be used with the other recycling metrics. 
+## Manual processing
+convert to csv, add company name column and a measure category (priority measure, financial, Units Moved,other )
+create a separate population csv to be used with the other recycling metrics. 
 
 - create a single pop csv to use in the analysis, error in raw data (population for Caribou missing 10,000)
 
@@ -111,7 +111,7 @@ head(pop.long)
 
 ```
 
-## Explore the non spatial data (all regions combined): Financial, units mooved and other
+## Explore the non spatial data (all regions combined): Financial, units moved and other
 1) Financial 
 
 ```{r financial, echo=TRUE,include = TRUE}
@@ -148,7 +148,7 @@ sum.fdata <- sum.fdata %>%
 There is not a strong correlation between with awareness, may need to adjust this per unit? or check if the awareness expenditure is for multiple programs (ECPOR and BCRCCC)
 
 2) Units Moved
-Is there a difference in the units moved (recoved or sold over time?)
+Is there a difference in the units moved (recovered or sold over time?)
 
 ```{r Units moved , echo=TRUE,include = TRUE}
 udata <- rdata %>% dplyr::filter(Catergory == 'Units Moved') %>%
@@ -175,7 +175,7 @@ sum.udata <- udata %>% group_by(Measure,year) %>%
 ```
    
    Appears to be a gap in the 2007 and 2008 year that needs to be checked as units show large decrease. 
-   Perhaps better to show the recovery rate, rather than recoved and sold (two verus one number)
+   Perhaps better to show the recovery rate, rather than recovered and sold (two versus one number)
    
 ```{r Recovery rate  , echo=TRUE,include = TRUE}    
     #calculate the recovery rate and make a line plot
@@ -195,8 +195,8 @@ sum.udata1 <- sum.udata1[-1,]
 
 ```
 
-3. Other catergory. 
-This includes data on the amount of emmission "saved/reduced" and total volumes 
+3. Other category. 
+This includes data on the amount of emissions "saved/reduced" and total volumes 
 
 ```{r, echo = TRUE}
 odata <- rdata %>% dplyr::filter(Catergory == 'Other') %>%
@@ -221,7 +221,7 @@ This plot could be reduced or split into two plots emissions saved and emissions
 
 ## Explore the spatial data sets: Units and weight per capita
 # 
-This includes regional based estimate. Still need to edit the comox strathcoma regions. Also some data entry errors are apparent when calculating the general plots 
+This includes regional based estimate. Still need to edit the comox Strathcona regions. Also some data entry errors are apparent when calculating the general plots 
 
 ```{r explor spatial dataset, echo = TRUE , warn=1}
 # extract the raw unit data and add popultaion data 
@@ -257,7 +257,7 @@ weight.per.cap <-  ppdata %>% filter(Measure == 'Absolute Collection-Weight Coll
    # ggsave(paste('out/',"04_Beverage_UnitsPerCap.png"))
     p1
 ```
-This plots shows some obvious data errors to check. Also highlights need to adjust comox and stracthcona datasets as not being correctly calculated. 
+This plots shows some obvious data errors to check. Also highlights need to adjust Comox and Strathcona datasets as not being correctly calculated. 
 
 ```{r weights per capita, echo = T, results = T}
     ## weight per capita
@@ -269,7 +269,7 @@ This plots shows some obvious data errors to check. Also highlights need to adju
 
 ```
 
-Plot 2 also shows simialr issue with naming to be fixed 
+Plot 2 also shows similar issue with naming to be fixed 
 
 We can also investigate the difference from the provincial average: 
 
@@ -333,12 +333,12 @@ Collection broken in regional and temporal data sets from 2010 to 2017 including
 Data exploration points to consider: 
 Temporal and a-spatial data sets include financial, collection sites, units moved, and end fate for products. 
 Collection sites does not look like much change in trends over time?
-Could be oportunity to combine a number of measure (ie beverage together). Comox and Strathcoma are treated seperatiely in this analysis. 
+Could be opportunity to combine a number of measure (ie beverage together). Comox and Strathcona are treated separately in this analysis. 
 
 Could also combine the % recover rate over time for different metrics in a single graph 
 
 ## Compare regional datasets for priority measures. 
-Note these are already calculated per person (assumung the pop data is correct)
+Note these are already calculated per person (assuming the pop data is correct)
 
 
 ```{r loaddata oils, echo=TRUE,include = TRUE}
@@ -361,7 +361,7 @@ ggplot(pdata,aes(year,n,fill=Measure)) +
 
 ```
 
-Used oil is a magnitude differnce in volumne. Repeat graph with out USed oil values: 
+Used oil is a magnitude difference in volume. Repeat graph with out used oil values: 
 
 
 ```{r loaddata oils graph 2, echo=TRUE,include = TRUE}
@@ -379,7 +379,7 @@ ggplot(pdata.1,aes(year,n,fill=Measure)) +
 
 # TO DO STILL : 
 
-## Explore the non spatial data (all regions combined): Financial, units mooved and other
+## Explore the non spatial data (all regions combined): Financial, units moved and other
 1) Financial 
 
 ```{r financial oil, echo=TRUE,include = TRUE}
