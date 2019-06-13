@@ -89,13 +89,13 @@ lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
 ## Load  data files
 # ACT: Removed setwd - shouldn't need to do if in a project or using here
 data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR")
-rdata <- read_csv(paste(data.dir, "bev.csv", sep = "/"), col_types = cols(.default = col_number()))
+rdata <- read_csv(file.path(data.dir, "bev.csv"))
 
 # Use here::here to always find a file relative to project root
 source(here::here('00_Functions.R'))
 
-rdata<- read.csv(paste(data.dir,"/bev.csv",sep = ""))
-rdKey <- read.csv(paste(data.dir,"/RD_key.csv",sep = ""))
+rdata<- read_csv(file.path(data.dir, "bev.csv"))
+rdKey <- read_csv(file.path(data.dir, "RD_key.csv"))
 
 #head(rdata)
 
@@ -342,8 +342,7 @@ Note these are already calculated per person (assumung the pop data is correct)
 
 
 ```{r loaddata oils, echo=TRUE,include = TRUE}
-setwd("C:/Temp/Github/recycling-indicator/")
-odata<- read.csv(paste(data.dir,"/LubOilFilt.csv",sep = ""))
+odata <- read_csv(file.path(data.dir,"LubOilFilt.csv"))
 
 # extract the raw unit data and add with population and maps....
 pdata <- odata %>% dplyr::filter(Catergory == 'Priority Measures') %>%
