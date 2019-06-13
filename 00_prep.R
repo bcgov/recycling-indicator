@@ -12,22 +12,22 @@
 
 ## Load in libraries
 
-x <- c("dplyr","ggplot2","tidyr","stringr","here","reshape", "bcmaps", "sf") #raster","sp","sf","rgdal","xlsx","rJava","tibble","mapview","gtools")
+x <- c("dplyr","ggplot2","tidyr","stringr","reshape", "bcmaps", "sf", "envreportutils") #raster","sp","sf","rgdal","xlsx","rJava","tibble","mapview","gtools")
 lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
-
 
 source('00_Functions.R')
 
 ## Load  data files
-data.dir <- "data/"
+#data.dir <- "data/" # to run on C:
+data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to run on O:/
 
-rdata<- read.csv(paste(data.dir,"bev.csv",sep = ""))
-rdKey <- read.csv(paste(data.dir,"RD_key.csv",sep = ""))
+rdata<- read.csv(paste(data.dir,"/bev.csv",sep = ""))
+rdKey <- read.csv(paste(data.dir,"/RD_key.csv",sep = ""))
 
-head(rdata)
-unique(rdata$Company)
-unique(rdata$Catergory)
-unique(rdata$Measure)
+#head(rdata)
+#unique(rdata$Company)
+#unique(rdata$Catergory)
+#unique(rdata$Measure)
 
 #------------------------------------------------------
 # extract the population data and export as csv
@@ -83,6 +83,45 @@ weight.per.cap <-  ppdata %>% filter(Measure == 'Absolute Collection-Weight Coll
     ggsave(paste('out/',"04_Beverage_weightPerCap.png"))
 
 
+    # calculate the provincial average
+    bc.units.per.cap <- units.per.cap %>% na.omit() %>%
+      group_by(year) %>%
+      summarise(BCave = mean(unit.per.cap))
+
+    regional.units.per.cap <- units.per.cap %>% na.omit() %>%
+      group_by(year,Region) %>%
+      summarise(ave = mean(unit.per.cap))
+
+    # join the regional and prov. ave data and calculate the difference
+
+    diff.df <-left_join(regional.units.per.cap,bc.units.per.cap, by = 'year')
+    diff.df <- diff.df %>% mutate(delta = ave-BCave)
+    diff.df$response <- ifelse( diff.df$delta < 0, "below", "above")
+    # calculate the deviation from average
+
+    # Diverging Barcharts
+    p4 <- ggplot(diff.df, aes(x=Region, y=delta,label=delta)) + facet_wrap(~year) +
+      geom_bar(stat='identity', aes(fill=response), width=.5)  +
+     scale_fill_manual(name="Mileage",
+                        labels = c("Above Average", "Below Average"),
+                        values = c("above"="#00ba38", "below"="#f8766d")) +
+      labs(title= "Regional difference from the average BC units per capita recycling") +
+      coord_flip()
+    ggsave(paste('out/',"05_regional_bc_ave_unitsPerCap_per_yr.png"))
+
+    # Diverging Barcharts (all years)
+    p5 <-  ggplot(diff.df, aes(x=Region, y=delta, label = delta)) +
+      geom_bar(stat='identity', aes(fill=response), width=.5)  +
+      scale_fill_manual(name="Mileage",
+                         labels = c("Above Average", "Below Average"),
+                          values = c("above"="#00ba38", "below"="#f8766d")) +
+       labs(title= "Regional difference from the average BC units per capita recycling") +
+      coord_flip()
+     ggsave(paste('out/',"06_regional_bc_ave_unitsPerCap_allyrs.png"))
+
+
+
+
 #-------------------------
 # MAke a map to show spatial context
 
@@ -95,9 +134,6 @@ rd <- regional_districts()
 rd.wgs<-st_transform(rd,4326) # convert to lat longs
 
 # join the abbreviations to the data
-
-
-#units per cap
 upc <- left_join(units.per.cap, rdKey, by = "Region")
 
 upc.sp <- merge(rd.wgs,upc, by.x = "ADMIN_AREA_ABBREVIATION", by.y="Abrev")
@@ -111,50 +147,50 @@ m
 rd.names <- rd[,c("ADMIN_AREA_ABBREVIATION","ADMIN_AREA_NAME")]
 
 
+## make some graphical outputs : STILL TO DO
+
+
+            st_geometry(rd)
+
+            unique(rd$ADMIN_AREA_ABBREVIATION)
+
+            leaflet(data = rd.wgs)%>%
+              addTiles() %>%
+              addPolygons(fillColor = "green")
 
 
 
-st_geometry(rd)
-
-unique(rd$ADMIN_AREA_ABBREVIATION)
-
-leaflet(data = rd.wgs)%>%
-  addTiles() %>%
-  addPolygons(fillColor = "green")
+                water_locations_map <- leaflet(rf) %>%
+                  addTiles() %>%
+                  addCircleMarkers(lng = ~location.longitude,
+                                   lat = ~location.latitude)
 
 
-
-    water_locations_map <- leaflet(rf) %>%
-      addTiles() %>%
-      addCircleMarkers(lng = ~location.longitude,
-                       lat = ~location.latitude)
+            mapview(rd)
 
 
-mapview(rd)
+                mapview()
+                leaflet(rd)%>%
+                addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
+                           opacity = 1.0, fillOpacity = 0.5,
+                           fillColor = ~colorQuantile("YlOrRd", ADMIN_AREA_NAME)(ADMIN_AREA_NAME))
 
 
-    mapview()
-    leaflet(rd)%>%
-    addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
-               opacity = 1.0, fillOpacity = 0.5,
-               fillColor = ~colorQuantile("YlOrRd", ADMIN_AREA_NAME)(ADMIN_AREA_NAME))
+            bc <- bc_bound()
+            plot(st_geometry(bc))
+
+            rd <- regional_districts()
 
 
-bc <- bc_bound()
-plot(st_geometry(bc))
-
-rd <- regional_districts()
+            kootenays <- rd[rd$ADMIN_AREA_NAME == "Regional District of Central Kootenay", ]
+            plot(st_geometry(kootenays), col = "lightseagreen", add = TRUE)
 
 
-kootenays <- rd[rd$ADMIN_AREA_NAME == "Regional District of Central Kootenay", ]
-plot(st_geometry(kootenays), col = "lightseagreen", add = TRUE)
+            sum.pdata1 <- sum.pdata %>% spread(Measure,total)
 
 
-sum.pdata1 <- sum.pdata %>% spread(Measure,total)
-
-
-sum.pdata1 <sum.pdata1 %>%
-  mutate(units.per.capita = "Absolute Collection-Units Collected-" / "Population-")
+            sum.pdata1 <sum.pdata1 %>%
+              mutate(units.per.capita = "Absolute Collection-Units Collected-" / "Population-")
 
 
 
@@ -258,6 +294,102 @@ ggplot(odata, aes(year,total,fill=Measure))+
   scale_y_continuous(limits = c(0,250))
 #ggsave(paste('out/',"03_Beverage_Other.png"))
 
+
+###################################################################################################
+## OIL Lubraicant and Filters
+
+odata<- read.csv(paste(data.dir,"/LubOilFilt.csv",sep = ""))
+#data alread populated by capita?
+
+# extract the raw unit data and add with population and maps....
+pdata <- odata %>% dplyr::filter(Catergory == 'Priority Measures') %>%
+  dplyr::filter(!Region == '') %>%
+  gather("year", "n",4:18)
+
+pdata$year = sub("X","",pdata$year)  # get rid of x on year column
+pdata$n <- replaceCommas(pdata$n) # fix the fromatting in numeric
+pdata$n <- as.numeric(as.character(pdata$n)) # convert to number
+pdata<- pdata[complete.cases(pdata),]
+
+## do a basic graph to check it out
+ggplot(pdata,aes(year,n,fill=Measure)) +
+  geom_bar(stat="identity",position="dodge") +
+  labs(title="Absolute collection (kg/litres) per person", x = "Year", y = "Collection (kg) per person")
+
+# used oil is order of magnitude more!
+pdata.1 <- pdata %>% dplyr::filter(!Measure == 'Used Oil - Absolute Collection (litres)-Per Person')
+pdata.1<- pdata.1[complete.cases(pdata.1),]
+
+
+## do a basic graph to check it out
+ggplot(pdata.1,aes(year,n,fill=Measure)) +
+  geom_bar(stat="identity",position="dodge") +
+  labs(title="Absolute collection (kg) per person", x = "Year", y = "Collection (kg) per person")
+
+
+
+
+# merge in the pop.long form data
+ppdata <- left_join(sum.pdata,pop.long, by = c("Region","year")) %>%
+  dplyr::select(-c('n')) %>%
+  mutate(unit.per.cap = total / pop)
+
+
+
+
+
+# break up into weight and units
+units.per.cap <- ppdata %>% filter(Measure == 'Absolute Collection-Units Collected-' )
+weight.per.cap <-  ppdata %>% filter(Measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
+
+## Units per capita
+ggplot(units.per.cap,aes(year,unit.per.cap)) + facet_wrap(~Region)+
+  geom_bar(stat="identity",position="dodge") +
+  labs(title="Regional Units Recycled per capita", x = "Year", y = " units per capita")
+ggsave(paste('out/',"04_Beverage_UnitsPerCap.png"))
+
+## weight per capita
+ggplot(weight.per.cap,aes(year,unit.per.cap)) + facet_wrap(~Region)+
+  geom_bar(stat="identity",position="dodge") +
+  labs(title="Regional weight of recycling (tonnes) per capita", x = "Year", y = "weight per cap (tonnes")
+ggsave(paste('out/',"04_Beverage_weightPerCap.png"))
+
+
+# calculate the provincial average
+bc.units.per.cap <- units.per.cap %>% na.omit() %>%
+  group_by(year) %>%
+  summarise(BCave = mean(unit.per.cap))
+
+regional.units.per.cap <- units.per.cap %>% na.omit() %>%
+  group_by(year,Region) %>%
+  summarise(ave = mean(unit.per.cap))
+
+# join the regional and prov. ave data and calculate the difference
+
+diff.df <-left_join(regional.units.per.cap,bc.units.per.cap, by = 'year')
+diff.df <- diff.df %>% mutate(delta = ave-BCave)
+diff.df$response <- ifelse( diff.df$delta < 0, "below", "above")
+# calculate the deviation from average
+
+# Diverging Barcharts
+p4 <- ggplot(diff.df, aes(x=Region, y=delta,label=delta)) + facet_wrap(~year) +
+  geom_bar(stat='identity', aes(fill=response), width=.5)  +
+  scale_fill_manual(name="Mileage",
+                    labels = c("Above Average", "Below Average"),
+                    values = c("above"="#00ba38", "below"="#f8766d")) +
+  labs(title= "Regional difference from the average BC units per capita recycling") +
+  coord_flip()
+ggsave(paste('out/',"05_regional_bc_ave_unitsPerCap_per_yr.png"))
+
+# Diverging Barcharts (all years)
+p5 <-  ggplot(diff.df, aes(x=Region, y=delta, label = delta)) +
+  geom_bar(stat='identity', aes(fill=response), width=.5)  +
+  scale_fill_manual(name="Mileage",
+                    labels = c("Above Average", "Below Average"),
+                    values = c("above"="#00ba38", "below"="#f8766d")) +
+  labs(title= "Regional difference from the average BC units per capita recycling") +
+  coord_flip()
+ggsave(paste('out/',"06_regional_bc_ave_unitsPerCap_allyrs.png"))
 
 
 
