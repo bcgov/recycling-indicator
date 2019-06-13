@@ -82,7 +82,8 @@ read in the data
 ```{r loadlibs, echo=FALSE,include = FALSE}
 x <- c("dplyr","ggplot2","tidyr","stringr","here", "bcmaps", "readr",
        "sf","envreportutils") 
-lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
+lapply(x, library, character.only = TRUE) # load the required packages
+rm(x)
 ```
 
 ```{r loaddata, echo=TRUE,include = TRUE}
@@ -94,21 +95,21 @@ rdata <- read_csv(file.path(data.dir, "bev.csv"))
 # Use here::here to always find a file relative to project root
 source(here::here('00_Functions.R'))
 
-rdata<- read_csv(file.path(data.dir, "bev.csv"))
+rdata <- read_csv(file.path(data.dir, "bev.csv"))
 rdKey <- read_csv(file.path(data.dir, "RD_key.csv"))
 
 #head(rdata)
 
 # extract the population data and export as csv
-pop <- rdata %>% dplyr::filter(Measure == 'Population-') %>%
-         dplyr::select(-c(Company,Catergory,Measure))
+pop <- rdata %>% 
+  dplyr::filter(Measure == 'Population-') %>%
+  dplyr::select(-c(Company, Catergory, Measure))
 
-pop.long <- pop %>% gather("year", "n",2:19)
-pop.long$year = sub("X","",pop.long$year)  # get rid of x on year column
-pop.long$pop <- replaceCommas(pop.long$n) # fix the fromatting in numeric
+pop.long <- gather(pop, "year", "n", 2:19) %>% 
+  mutate(year = sub("X", "", year),  # get rid of x on year column
+         pop = replaceCommas(n)) # fix the fromatting in numeric
+
 head(pop.long)
-
-
 ```
 
 ## Explore the non spatial data (all regions combined): Financial, units moved and other
@@ -116,15 +117,18 @@ head(pop.long)
 
 ```{r financial, echo=TRUE,include = TRUE}
 # Grab the financial data
-fdata <- rdata %>% dplyr::filter(Catergory == 'Financial') %>%
-          dplyr::select(-c(Catergory,Region)) %>%
-          dplyr::filter(!Company == 'EncorpPacific_BRCCC') %>%
-          gather("year", "n",3:20)
-#fdata$n = sub("$","",fdata$n)  # get rid of x on year column
-fdata$n <- replaceDollars(fdata$n) # fix the fromatting in numeric
-fdata$n <- replaceCommas(fdata$n) # fix the fromatting in numeric
-fdata$n.m <-fdata$n/1000000
-fdata$year = sub("X","",fdata$year)  # get rid of x on year column
+fdata <- rdata %>% 
+  dplyr::filter(Catergory == 'Financial') %>%
+  dplyr::select(-c(Catergory,Region)) %>%
+  dplyr::filter(!Company == 'EncorpPacific_BRCCC') %>%
+  gather("year", "n",3:20) %>% 
+  mutate(
+    #fdata$n = sub("$","",fdata$n),  # get rid of x on year column
+    n = replaceDollars(n), # fix the fromatting in numeric
+    n = replaceCommas(n), # fix the fromatting in numeric
+    n.m = n / 1000000,
+    year = sub("X", "", year)  # get rid of x on year column
+  )
 
 sum.fdata <- fdata %>% group_by(Measure,year) %>%
   summarise(total = sum(n.m,na.rm = TRUE))
@@ -135,13 +139,14 @@ sum.fdata <- fdata %>% group_by(Measure,year) %>%
 ```{r unclaimed, echo=TRUE,include = TRUE}
 to.keep <- c('Unclaimed Deposits','Expenditure-Consumer Awareness')
 
-sum.fdata <- sum.fdata %>%
+sum.fdata <- sum.fdata %>% 
   filter(Measure %in% to.keep )
 # Does spending more on consumer awareness decrease unclaimed deposits
-    ggplot(sum.fdata,aes(year,total,fill=Measure)) +
-      geom_bar(stat="identity",position="dodge") +
-      labs(title="Unclaimed deposits and consumer-expenditure", x = "Year", y = " Amount ($1,000,000)")
-    #ggsave(paste('out/',"01_Beverage_UnitsMoved.png"))
+ggplot(sum.fdata, aes(year, total, fill = Measure)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Unclaimed deposits and consumer-expenditure", 
+       x = "Year", y = " Amount ($1,000,000)")
+#ggsave(paste('out/',"01_Beverage_UnitsMoved.png"))
 
 ```
 
@@ -152,26 +157,27 @@ Is there a difference in the units moved (recovered or sold over time?)
 
 ```{r Units moved , echo=TRUE,include = TRUE}
 udata <- rdata %>% dplyr::filter(Catergory == 'Units Moved') %>%
-  dplyr::select(-c(Catergory,Region))%>%
+  dplyr::select(-c(Catergory,Region)) %>%
   dplyr::filter(!Company == 'EncorpPacific_BRCCC') %>%
   dplyr::filter(!Measure == 'Recovery Rate (%)  Regulation Target 75%') %>%
-  gather("year", "n",3:20)
-
-udata$n <- replaceCommas(udata$n) # fix the fromatting in numeric
-udata$n.m <-udata$n/1000000
-udata$year = sub("X","",udata$year)  # get rid of x on year column
+  gather("year", "n", 3:20) %>% 
+  mutate(
+    n = replaceCommas(n), # fix the fromatting in numeric
+    n.m = n / 1000000,
+    year = sub("X", "", year)  # get rid of x on year column
+  )
 
 # summarise per year
-sum.udata <- udata %>% group_by(Measure,year) %>%
-  summarise(total = sum(n.m,na.rm = TRUE))
+sum.udata <- udata %>% 
+  group_by(Measure, year) %>%
+  summarise(total = sum(n.m, na.rm = TRUE))
 
   # make a pretty graph
-  ggplot(sum.udata,aes(year,total,fill=Measure)) +
-    geom_bar(stat="identity",position="dodge") +
-    labs(title="Recycled Units Returned and Sold", x = "Year", y = "Total no. (millions)")
+ggplot(sum.udata, aes(year, total, fill = Measure)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Recycled Units Returned and Sold", 
+       x = "Year", y = "Total no. (millions)")
    # ggsave(paste('out/',"01_Beverage_UnitsMoved.png"))
-
- 
 ```
    
    Appears to be a gap in the 2007 and 2008 year that needs to be checked as units show large decrease. 
@@ -179,18 +185,21 @@ sum.udata <- udata %>% group_by(Measure,year) %>%
    
 ```{r Recovery rate  , echo=TRUE,include = TRUE}    
     #calculate the recovery rate and make a line plot
-sum.udata1 <-  udata %>% group_by(Measure,year) %>%
-  summarise(total = sum(n.m,na.rm = TRUE)) %>%
-  spread(., Measure,total)
+sum.udata1 <-  udata %>% 
+  group_by(Measure, year) %>%
+  summarise(total = sum(n.m, na.rm = TRUE)) %>%
+  spread(Measure,total) %>% 
+  mutate(RecoveryRate = `Units Recovered` / `Units Sold` * 100)
 
-sum.udata1$RecoveryRate = sum.udata1$'Units Recovered' / sum.udata1$'Units Sold' *100
+
 sum.udata1 <- sum.udata1[-1,]
 
-    ggplot(sum.udata1, aes(x = year, y = RecoveryRate))+
-      geom_point() +
-      ylim(60,100) +
-      geom_hline(yintercept = 75, color = "red", lty = 2) +
-      labs(title="Recycled Units Recovery Rate (%)", x = "Year", y = "Recovery Rate %")
+ggplot(sum.udata1, aes(x = year, y = RecoveryRate)) +
+  geom_point() +
+  ylim(60,100) +
+  geom_hline(yintercept = 75, color = "red", lty = 2) +
+  labs(title = "Recycled Units Recovery Rate (%)", 
+       x = "Year", y = "Recovery Rate %")
       #ggsave(paste('out/',"02_Beverage_UnitsMoved.png"))
 
 ```
@@ -200,20 +209,24 @@ This includes data on the amount of emissions "saved/reduced" and total volumes
 
 ```{r, echo = TRUE}
 odata <- rdata %>% dplyr::filter(Catergory == 'Other') %>%
-    dplyr::select(-c(Company, Catergory,Region)) %>%
-    gather("year", "n",2:19)
-odata$n <- replaceCommas(odata$n) # fix the fromatting in numeric
-odata$n.t <-odata$n/1000
-odata$year = sub("X","",odata$year)  # get rid of x on year column
-odata$Measure = sub("tonnes","Tonnes",odata$Measure)  # get rid of x on year column
+  dplyr::select(-c(Company, Catergory,Region)) %>%
+  gather("year", "n",2:19) %>% 
+  mutate(
+    n = replaceCommas(n), # fix the fromatting in numeric
+    n.t = n / 1000,
+    year = sub("X", "", year),  # get rid of x on year column
+    Measure = sub("tonnes", "Tonnes", Measure)  # get rid of x on year column
+  )
 
-odata <- odata %>% group_by(Measure,year) %>%
-  summarise(total = sum(n.t,na.rm = TRUE))
+odata <- odata %>% 
+  group_by(Measure, year) %>%
+  summarise(total = sum(n.t, na.rm = TRUE))
 
-ggplot(odata, aes(year,total,fill=Measure))+
-  geom_bar(stat="identity",position="dodge") +
-  labs(title="Tonnes of material and reduction of pollutants", x = "Year", y = "Tonnes (thousands)") +
-  scale_y_continuous(limits = c(0,250))
+ggplot(odata, aes(year, total, fill = Measure)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Tonnes of material and reduction of pollutants", 
+       x = "Year", y = "Tonnes (thousands)") +
+  scale_y_continuous(limits = c(0, 250))
 
 ```
  
@@ -225,21 +238,25 @@ This includes regional based estimate. Still need to edit the comox Strathcona r
 
 ```{r explor spatial dataset, echo = TRUE , warn=1}
 # extract the raw unit data and add popultaion data 
-pdata <- rdata %>% dplyr::filter(Catergory == 'Priority Measures') %>%
+pdata <- rdata %>% 
+  dplyr::filter(Catergory == 'Priority Measures') %>%
   dplyr::select(-c(Catergory)) %>%
   dplyr::filter(!Company == 'EncorpPacific_BRCCC')%>%
   dplyr::filter(Measure %in% c("Absolute Collection-Units Collected-","Absolute Collection-Weight Collected (Tonnes)-")) %>%
-  gather("year", "n",4:21)
-# format the data tyep 
-pdata$year = sub("X","",pdata$year)  # get rid of x on year column
-pdata$n <- replaceCommas(pdata$n) # fix the fromatting in numeric
+  gather("year", "n",4:21) %>% 
+  mutate(
+    # format the data tyep 
+    year = sub("X", "", year),  # get rid of x on year column
+    n = replaceCommas(n) # fix the fromatting in numeric
+  )
 
 # group together the multiple companies
-sum.pdata <- pdata %>% group_by(Measure, Region, year) %>%
-  summarise(total = sum(n,na.rm = TRUE))
+sum.pdata <- pdata %>% 
+  group_by(Measure, Region, year) %>%
+  summarise(total = sum(n, na.rm = TRUE))
 
 # merge in the pop.long form data
-ppdata <- left_join(sum.pdata,pop.long, by = c("Region","year")) %>%
+ppdata <- left_join(sum.pdata, pop.long, by = c("Region","year")) %>%
   dplyr::select(-c('n')) %>%
   mutate(unit.per.cap = total / pop)
 ```
@@ -247,25 +264,31 @@ No w data is format split this into different units, tonnes and units per capita
 
 ```{r split into diffrent unirs and make plots, echo = T, results = T}
 # Split data set into weight and units
-units.per.cap <- ppdata %>% filter(Measure == 'Absolute Collection-Units Collected-' )
-weight.per.cap <-  ppdata %>% filter(Measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
+units.per.cap <- ppdata %>% 
+  filter(Measure == 'Absolute Collection-Units Collected-' )
+weight.per.cap <-  ppdata %>% 
+  filter(Measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
 
-    ## Units per capita
-    p1 <- ggplot(units.per.cap,aes(year,unit.per.cap)) + facet_wrap(~Region)+
-      geom_bar(stat="identity",position="dodge") +
-      labs(title="Regional Units Recycled per capita", x = "Year", y = " units per capita")
-   # ggsave(paste('out/',"04_Beverage_UnitsPerCap.png"))
-    p1
+## Units per capita
+p1 <- ggplot(units.per.cap, aes(year, unit.per.cap)) + 
+  facet_wrap(~Region) +
+  geom_bar(stat = "identity",position = "dodge") +
+  labs(title = "Regional Units Recycled per capita", 
+       x = "Year", y = " units per capita")
+# ggsave(paste('out/',"04_Beverage_UnitsPerCap.png"))
+p1
 ```
 This plots shows some obvious data errors to check. Also highlights need to adjust Comox and Strathcona datasets as not being correctly calculated. 
 
 ```{r weights per capita, echo = T, results = T}
     ## weight per capita
-    p2 <- ggplot(weight.per.cap,aes(year,unit.per.cap)) + facet_wrap(~Region)+
-      geom_bar(stat="identity",position="dodge") +
-      labs(title="Regional weight of recycling (tonnes) per capita", x = "Year", y = "weight per cap (tonnes")
-    #ggsave(paste('out/',"04_Beverage_weightPerCap.png"))
-    p2
+p2 <- ggplot(weight.per.cap,aes(year,unit.per.cap)) + 
+  facet_wrap(~Region) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Regional weight of recycling (tonnes) per capita", 
+       x = "Year", y = "weight per cap (tonnes")
+#ggsave(paste('out/',"04_Beverage_weightPerCap.png"))
+p2
 
 ```
 
@@ -276,40 +299,45 @@ We can also investigate the difference from the provincial average:
 ```{r calculate average and }
 
 # calculate the provincial average
-bc.units.per.cap <- units.per.cap %>% na.omit() %>%
-    group_by(year) %>%
-    summarise(BCave = mean(unit.per.cap))
+bc.units.per.cap <-  units.per.cap %>% 
+  na.omit() %>%
+  group_by(year) %>%
+  summarise(BCave = mean(unit.per.cap))
 
-regional.units.per.cap <- units.per.cap %>% na.omit() %>%
-    group_by(year,Region) %>%
-    summarise(ave = mean(unit.per.cap))
+regional.units.per.cap <- units.per.cap %>% 
+  na.omit() %>%
+  group_by(year,Region) %>%
+  summarise(ave = mean(unit.per.cap))
 # join the regional and prov. ave data and calculate the difference
 
-diff.df <-left_join(regional.units.per.cap,bc.units.per.cap, by = 'year')
-diff.df <- diff.df %>% mutate(delta = ave-BCave)
-diff.df$response <- ifelse( diff.df$delta < 0, "below", "above")
-    # calculate the deviation from average
+diff.df <- left_join(regional.units.per.cap,bc.units.per.cap, by = 'year') %>% 
+  mutate(delta = ave - BCave, 
+         # calculate the deviation from average
+         response = ifelse(delta < 0, "below", "above"))
 
-    # Diverging Barcharts
-    p4 <- ggplot(diff.df, aes(x=Region, y=delta,label=delta)) + facet_wrap(~year) +
-      geom_bar(stat='identity', aes(fill=response), width=.5)  +
-     scale_fill_manual(name="Mileage",
-                        labels = c("Above Average", "Below Average"),
-                        values = c("above"="#00ba38", "below"="#f8766d")) +
-      labs(title= "Regional difference from the average BC units per capita recycling") +
-      coord_flip()
-    #ggsave(paste('out/',"05_regional_bc_ave_unitsPerCap_per_yr.png"))
-    p4
-    # Diverging Barcharts (all years)
-    p5 <-  ggplot(diff.df, aes(x=Region, y=delta, label = delta)) +
-      geom_bar(stat='identity', aes(fill=response), width=.5)  +
-      scale_fill_manual(name="Mileage",
-                         labels = c("Above Average", "Below Average"),
-                          values = c("above"="#00ba38", "below"="#f8766d")) +
-       labs(title= "Regional difference from the average BC units per capita recycling") +
-      coord_flip()
-    # ggsave(paste('out/',"06_regional_bc_ave_unitsPerCap_allyrs.png"))
-    p5
+
+# Diverging Barcharts
+p4 <- ggplot(diff.df, aes(x = Region, y = delta, label = delta)) + 
+  facet_wrap(~year) +
+  geom_bar(stat = 'identity', aes(fill = response), width = 0.5)  +
+  scale_fill_manual(name = "Mileage",
+                    labels = c("Above Average", "Below Average"),
+                    values = c("above" = "#00ba38", "below" = "#f8766d")) +
+  labs(title = "Regional difference from the average BC units per capita recycling") +
+  coord_flip()
+#ggsave(paste('out/',"05_regional_bc_ave_unitsPerCap_per_yr.png"))
+p4
+
+# Diverging Barcharts (all years)
+p5 <- ggplot(diff.df, aes(x = Region, y = delta, label = delta)) +
+  geom_bar(stat = 'identity', aes(fill = response), width = 0.5)  +
+  scale_fill_manual(name = "Mileage",
+                    labels = c("Above Average", "Below Average"),
+                    values = c("above" = "#00ba38", "below" = "#f8766d")) +
+  labs(title = "Regional difference from the average BC units per capita recycling") +
+  coord_flip()
+# ggsave(paste('out/',"06_regional_bc_ave_unitsPerCap_allyrs.png"))
+p5
 ```
 
 
@@ -345,19 +373,23 @@ Note these are already calculated per person (assuming the pop data is correct)
 odata <- read_csv(file.path(data.dir,"LubOilFilt.csv"))
 
 # extract the raw unit data and add with population and maps....
-pdata <- odata %>% dplyr::filter(Catergory == 'Priority Measures') %>%
-  dplyr::filter(!Region == '') %>%
-  gather("year", "n",4:18)
+pdata <- odata %>% 
+  dplyr::filter(Catergory == 'Priority Measures', 
+                !Region == '') %>%
+  gather("year", "n", 4:18) %>% 
+  mutate(
+    year = sub("X" ,"", year),  # get rid of x on year column
+    n = replaceCommas(n), # fix the fromatting in numeric
+    n = as.numeric(as.character(n)), # convert to number
+  )
 
-pdata$year = sub("X","",pdata$year)  # get rid of x on year column
-pdata$n <- replaceCommas(pdata$n) # fix the fromatting in numeric
-pdata$n <- as.numeric(as.character(pdata$n)) # convert to number
-pdata<- pdata[complete.cases(pdata),]
+pdata <- pdata[complete.cases(pdata),]
 
 ## do a basic graph to check it out
-ggplot(pdata,aes(year,n,fill=Measure)) +
-  geom_bar(stat="identity",position="dodge") +
-  labs(title="Absolute collection (kg/litres) per person", x = "Year", y = "Collection (kg) per person")
+ggplot(pdata, aes(year, n, fill = Measure)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Absolute collection (kg/litres) per person", 
+       x = "Year", y = "Collection (kg) per person")
 
 ```
 
@@ -365,14 +397,15 @@ Used oil is a magnitude difference in volume. Repeat graph with out used oil val
 
 
 ```{r loaddata oils graph 2, echo=TRUE,include = TRUE}
-pdata.1 <- pdata %>% dplyr::filter(!Measure == 'Used Oil - Absolute Collection (litres)-Per Person')
-pdata.1<- pdata.1[complete.cases(pdata.1),]
+pdata.1 <- pdata %>% 
+  dplyr::filter(Measure != 'Used Oil - Absolute Collection (litres)-Per Person')
+pdata.1 <- pdata.1[complete.cases(pdata.1),]
 
 ## do a basic graph to check it out
 ggplot(pdata.1,aes(year,n,fill=Measure)) +
   geom_bar(stat="identity",position="dodge") +
-  labs(title="Absolute collection (kg) per person", x = "Year", y = "Collection (kg) per person") 
-
+  labs(title="Absolute collection (kg) per person", x = "Year", 
+       y = "Collection (kg) per person") 
 ```
 
 
