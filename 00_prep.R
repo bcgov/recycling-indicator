@@ -21,10 +21,6 @@ source('00_Functions.R')
 data.dir <- "data/" # to run on C:
 #data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to run on O:/
 
-financial
-units
-priority_raw
-
 rdKey <- read.csv(paste(data.dir,"/RD_key.csv",sep = ""))
 
 #------------------------------------------------------
@@ -205,76 +201,68 @@ rd.names <- rd[,c("ADMIN_AREA_ABBREVIATION","ADMIN_AREA_NAME")]
 
 #----------------------------
 # Grab the financial data
-fdata <- rdata %>% dplyr::filter(Catergory == 'Financial') %>%
-          dplyr::select(-c(Catergory,Region)) %>%
-          dplyr::filter(!Company == 'EncorpPacific_BRCCC') %>%
-          gather("year", "n",3:20)
-#fdata$n = sub("$","",fdata$n)  # get rid of x on year column
-fdata$n <- replaceDollars(fdata$n) # fix the fromatting in numeric
-fdata$n <- replaceCommas(fdata$n) # fix the fromatting in numeric
-fdata$n.m <-fdata$n/1000000
-fdata$year = sub("X","",fdata$year)  # get rid of x on year column
 
-# unique(fdata$Measure)
-sum.fdata <- fdata %>% group_by(Measure,year) %>%
-  summarise(total = sum(n.m,na.rm = TRUE))
+fdata <-financial %>%
+          gather("year", "n", 3:length(.)) %>%
+          mutate(n.m = n/1000000)
 
-  to.remove <-c("Total reported revenues - Encorp","Total reported expenditure* - Encorp","Total reported expenditure - excluding deposits refunded* - Encorp","Total deposits collected Encorp","Total deposits refunded Encorp")
-  #to.keep <- c('Deposits Charged','Deposits Refunded','Expenditure-Consumer Awareness')
-  to.keep <- c('Unclaimed Deposits','Expenditure-Consumer Awareness')
+sum.fdata <- fdata %>%
+          group_by(measure, year) %>%
+          summarise(total = sum(n.m,na.rm = TRUE))
 
-   sum.fdata <- sum.fdata %>%
-  filter(Measure %in% to.keep )
+to.remove <-c("Total reported revenues - Encorp","Total reported expenditure* - Encorp","Total reported expenditure - excluding deposits refunded* - Encorp","Total deposits collected Encorp","Total deposits refunded Encorp")
+to.keep <- c('Deposits Charged','Deposits Refunded','Expenditure-Consumer Awareness')
+#to.keep <- c('Unclaimed Deposits','Expenditure-Consumer Awareness')
 
-#Deposits charged and refunded over time?
-#unique(fdata$Measure)
+sum.fdata <- sum.fdata %>%
+  filter(measure %in% to.keep )
+
+#Deposits charged and refunded over time
 
 # Does spending more on consumer awareness decrease unclaimed deposits
-    ggplot(sum.fdata,aes(year,total,fill=Measure)) +
+ggplot(sum.fdata, aes(year, total, fill = measure)) +
       geom_bar(stat="identity",position="dodge") +
       labs(title="Unclaimed deposits and consumer-expenditure", x = "Year", y = " Amount ($1,000,000)")
     #ggsave(paste('out/',"01_Beverage_UnitsMoved.png"))
 
-
--------------------------------------------------------
+#-------------------------------------------------------
 # Grab the units moved
-udata <- rdata %>% dplyr::filter(Catergory == 'Units Moved') %>%
-  dplyr::select(-c(Catergory,Region))%>%
-  dplyr::filter(!Company == 'EncorpPacific_BRCCC') %>%
-  dplyr::filter(!Measure == 'Recovery Rate (%)  Regulation Target 75%') %>%
-  gather("year", "n",3:20)
 
-udata$n <- replaceCommas(udata$n) # fix the fromatting in numeric
-udata$n.m <-udata$n/1000000
-udata$year = sub("X","",udata$year)  # get rid of x on year column
+udata <- units %>%
+  dplyr::select(-c(organization)) %>%
+  gather("year", "n",2:length(.)) %>%
+  mutate(n.m = n/1000000)
 
 # summarise per year
-sum.udata <- udata %>% group_by(Measure,year) %>%
+sum.udata <- udata %>%
+  group_by(measure,year) %>%
   summarise(total = sum(n.m,na.rm = TRUE))
 
   # make a pretty graph
-  ggplot(sum.udata,aes(year,total,fill=Measure)) +
-    geom_bar(stat="identity",position="dodge") +
-    labs(title="Recycled Units Returned and Sold", x = "Year", y = "Total no. (millions)")
+  ggplot(sum.udata, aes(year, total, fill = measure)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    labs(title = "Recycled Units Returned and Sold",
+        x = "Year", y = "Total no. (millions)")
     ggsave(paste('out/',"01_Beverage_UnitsMoved.png"))
 
-    #calculate the recovery rate and make a line plot
-sum.udata1 <-  udata %>% group_by(Measure,year) %>%
-  summarise(total = sum(n.m,na.rm = TRUE)) %>%
-  spread(., Measure,total)
+#calculate the recovery rate and make a line plot
+sum.udata1 <-  udata %>%
+  group_by(measure,year) %>%
+  summarise(total = sum(n.m, na.rm = TRUE)) %>%
+  spread(., measure, total)
 
 sum.udata1$RecoveryRate = sum.udata1$'Units Recovered' / sum.udata1$'Units Sold' *100
 sum.udata1 <- sum.udata1[-1,]
 
-    ggplot(sum.udata1, aes(x = year, y = RecoveryRate))+
+ggplot(sum.udata1, aes(x = year, y = RecoveryRate))+
       geom_point() +
       ylim(60,100) +
       geom_hline(yintercept = 75, color = "red", lty = 2) +
       labs(title="Recycled Units Recovery Rate (%)", x = "Year", y = "Recovery Rate %")
-      ggsave(paste('out/',"02_Beverage_UnitsMoved.png"))
+  ggsave(paste('out/',"02_Beverage_UnitsMoved.png"))
 
-----------------------------------------------------------------
-
+#----------------------------------------------------------------
+# This is yet to be updated to new version of excel data prep
 # Grab data from "other catergory"
 
 odata <- rdata %>% dplyr::filter(Catergory == 'Other') %>%
@@ -295,8 +283,7 @@ ggplot(odata, aes(year,total,fill=Measure))+
   geom_bar(stat="identity",position="dodge") +
   labs(title="Tonnes of material and reduction of pollutants", x = "Year", y = "Tonnes (thousands)") +
   scale_y_continuous(limits = c(0,250))
-#ggsave(paste('out/',"03_Beverage_Other.png"))
-
+#------------------------------------------------------------
 
 ###################################################################################################
 ## OIL Lubraicant and Filters
