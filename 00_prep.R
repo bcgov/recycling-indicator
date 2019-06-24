@@ -68,72 +68,67 @@ units.per.cap <- ppdata %>%
 weight.per.cap <-  ppdata %>%
       filter(measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
 
-
 ## Units per capita
-    ggplot(units.per.cap,aes(year,unit.per.cap)) +
-      facet_wrap(~ regional_district) +
-      geom_bar(stat = "identity",position = "dodge") +
-      labs(title = "Regional Units Recycled per capita",
+ggplot(units.per.cap,aes(year,unit.per.cap)) +
+  facet_wrap(~ regional_district) +
+  geom_bar(stat = "identity",position = "dodge") +
+  labs(title = "Regional Units Recycled per capita",
            x = "Year", y = "units per capita")
-    ggsave(paste('out/',"04_Beverage_UnitsPerCap.png"))
+ggsave(paste('out/',"04_Beverage_UnitsPerCap.png"))
 
-    ## weight per capita
-    ggplot(weight.per.cap,aes(year,unit.per.cap)) +
-      facet_wrap(~ regional_district) +
-      geom_bar(stat = "identity",position="dodge") +
-      labs(title = "Regional weight of recycling (tonnes) per capita",
+## weight per capita
+ggplot(weight.per.cap,aes(year,unit.per.cap)) +
+  facet_wrap(~ regional_district) +
+  geom_bar(stat = "identity",position="dodge") +
+  labs(title = "Regional weight of recycling (tonnes) per capita",
            x = "Year", y = "weight per cap (tonnes")
-    ggsave(paste('out/',"04_Beverage_weightPerCap.png"))
+ggsave(paste('out/',"04_Beverage_weightPerCap.png"))
 
-
-    # calculate the provincial average
-    bc.units.per.cap <- units.per.cap %>%
+# calculate the provincial average
+bc.units.per.cap <- units.per.cap %>%
       na.omit() %>%
       group_by(year) %>%
       summarise(bc_ave = mean(unit.per.cap))
 
-    regional.units.per.cap <- units.per.cap %>%
+regional.units.per.cap <- units.per.cap %>%
       na.omit() %>%
       group_by(year,regional_district) %>%
       summarise(ave = mean(unit.per.cap))
 
-    # join the regional and prov. ave data and calculate the difference
-
-    diff.df <-left_join(regional.units.per.cap,
-                        bc.units.per.cap, by = 'year')
-    diff.df <- diff.df %>%
+# join the regional and prov. ave data and calculate the difference
+diff.df <- regional.units.per.cap %>%
+          left_join(.,bc.units.per.cap, by = 'year') %>%
           mutate(delta = ave-bc_ave) %>%
           mutate(response = ifelse(delta < 0,"below", "above")) %>%
           mutate(response = ifelse(delta == 0,"No data",response))
 
-    # calculate the deviation from average
-
 # Diverging barcharts
-    ggplot(diff.df, aes(x = regional_district,
-                     y = delta,
-                     label= delta)) +
+ggplot(diff.df, aes(x = regional_district,
+                    y = delta,
+                    label= delta)) +
                   facet_wrap(~year) +
-      geom_bar(stat='identity', aes(fill=response), width=.5)  +
-     scale_fill_manual(name="Mileage",
-                        labels = c("Above Average", "Below Average", "No Data"),
-                        values = c("above"="#00ba38", "below"="#f8766d", "no data" = 'grey')) +
+    geom_bar(stat='identity', aes(fill=response), width=.5)  +
+    scale_fill_manual(name="Mileage",
+                  labels = c("Above Average", "Below Average", "No Data"),
+                  values = c("above"="#00ba38", "below"="#f8766d", "no data" = 'grey')) +
       labs(title= "Regional difference from the average BC units per capita recycling") +
       coord_flip()
-    #ggsave(paste('out/',"05_regional_bc_ave_unitsPerCap_per_yr.png"))
+#ggsave(paste('out/',"05_regional_bc_ave_unitsPerCap_per_yr.png"))
 
-    # Diverging Barcharts (all years)
-    p5 <-  ggplot(diff.df, aes(x=Region, y=delta, label = delta)) +
-      geom_bar(stat='identity', aes(fill=response), width=.5)  +
+# Diverging Barcharts (all years)
+ggplot(diff.df, aes(x = regional_district,
+                    y = delta,
+                    label = delta)) +
+      geom_bar(stat='identity', aes(fill = response), width =.5)  +
       scale_fill_manual(name="Mileage",
-                         labels = c("Above Average", "Below Average"),
-                          values = c("above"="#00ba38", "below"="#f8766d")) +
+                    labels = c("Above Average", "Below Average","No data"),
+                    values = c("above"="#00ba38", "below"="#f8766d", "no data" = 'grey')) +
        labs(title= "Regional difference from the average BC units per capita recycling") +
       coord_flip()
-     ggsave(paste('out/',"06_regional_bc_ave_unitsPerCap_allyrs.png"))
+#ggsave(paste('out/',"06_regional_bc_ave_unitsPerCap_allyrs.png"))
 
 
-
-
+# Work in progress
 #-------------------------
 # MAke a map to show spatial context
 
@@ -208,11 +203,7 @@ rd.names <- rd[,c("ADMIN_AREA_ABBREVIATION","ADMIN_AREA_NAME")]
 
 
 
-
-
-
-
--------------------------------------------------------
+#----------------------------
 # Grab the financial data
 fdata <- rdata %>% dplyr::filter(Catergory == 'Financial') %>%
           dplyr::select(-c(Catergory,Region)) %>%
