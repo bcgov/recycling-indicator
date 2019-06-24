@@ -9,10 +9,11 @@ excel_file <- file.path(
   "EPR annual report info roll up 2017.xlsb.xlsx"
 )
 
-#local copy to test
+# Or use local copy to test
 excel_file <- file.path("C:/Temp/Github/recycling-indicator/data",
           "EPR annual report info roll up 2017.xlsb.xlsx"
 )
+
 list.files("C:/Temp/Github/recycling-indicator/data")
 
 
@@ -28,8 +29,8 @@ read_bevs_recovery <- function(file, range, org) {
     rename_by_pos(1,"measure") %>%
     rename_by_pos(2,"regional_district") %>%
     filter(measure != "Priority Measures") %>%
-    mutate(organiziation = org) %>%
-    select(organiziation, everything())
+    mutate(organization = org) %>%
+    select(organization, everything())
 }
 
 
@@ -40,8 +41,8 @@ read_bevs_financial <- function(file, range, org) {
              col_types = c("text", "skip", rep("numeric", cols - 2)),
              col_names = c("measure", "foo",
                            seq(2000, length.out = cols - 2))) %>%
-    mutate(organiziation = org) %>%
-    select(organiziation, everything())
+    mutate(organization = org) %>%
+    select(organization, everything())
 }
 
 
@@ -52,44 +53,21 @@ read_bevs_units <- function(file, range, org) {
              col_types = c("text", "skip", rep("numeric", cols - 2)),
              col_names = c("measure", "foo",
                            seq(2000, length.out = cols - 2))) %>%
-    mutate(organiziation = org) %>%
-    select(organiziation, everything())
+    mutate(organization = org) %>%
+    select(organization, everything())
 }
-
 
 read_bevs_recovery_raw <- function(file, range,org) {
   cols <- ncols_from_range(range)
   read_excel(excel_file, sheet = "Bevs(2000-2017)",
-            range = range, col_names = TRUE) %>%
-            #rename_at(1:2, ~ c("measure", "regional_district")) %>%
-            rename_by_pos(1, "measure") %>%
-            rename_by_pos(2, "regional_district") %>%
-            filter(measure != "Priority Measures") %>%
-            mutate(organiziation = org) %>%
-            select(organiziation, everything())
+             range = range,
+             col_names = c("measure", "regional_district",
+                           seq(2000, length.out = cols - 2))) %>%
+    filter(measure != "Priority Measures") %>%
+    mutate(organization = org) %>%
+    select(organization, everything())
 }
 
-encorp_priority_raw <- read_bevs_recovery_raw(excel_file, "B64:U122", "Encorp Pacific")
-
-range = "B64:U122"
-org = "Encorp Pacific"
-
-cols <- ncols_from_range(range)
-x <-read_excel(excel_file,sheet = "Bevs(2000-2017)",
-           range = range, col_names = TRUE) %>%
-  #rename_at(1:2, ~ c("measure", "regional_district")) %>%
-  rename_by_pos(1,"measure") %>%
-  rename_by_pos(2,"regional_district") %>%
-  filter(measure != "Priority Measures") %>%
-  mutate(organiziation = org) %>%
-  select(organiziation, everything())
-}
-
-
-
-excel_file
-range = "B64:U122"
-org = "Encorp Pacific"
 
 
 
@@ -100,18 +78,19 @@ ncols_from_range <- function(range) {
 encorp_priority <- read_bevs_recovery(excel_file, "B5:U38", "Encorp Pacific")
 bc_brewers_priority <- read_bevs_recovery(excel_file, range = "B138:U170", "BC Brewers")
 
-
 encorp_financial <- read_bevs_financial(excel_file, "B45:U53", "Encorp Pacific")
 bc_brewers_financial <- read_bevs_financial(excel_file, "B185:U193", "BC Brewers")
-
 
 encorp_units <- read_bevs_units(excel_file, "B55:U56", "Encorp Pacific")
 bc_brewers_units <- read_bevs_units(excel_file, "B195:U196", "BC Brewers")
 
+encorp_priority_raw <- read_bevs_recovery_raw(excel_file, "B65:U122", "Encorp Pacific")
+bc_brewers_priority_raw <- read_bevs_recovery_raw(excel_file, "B209:U293", "BC Brewers")
 
 
+# combine data sets into single file per metric (financial/units/priority)
 
 financial <- rbind(encorp_financial, bc_brewers_financial)
 units <- rbind(encorp_units, bc_brewers_units)
-
+priority_raw <- rbind(encorp_priority_raw, bc_brewers_priority_raw )
 

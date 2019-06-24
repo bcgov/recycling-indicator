@@ -18,96 +18,108 @@ lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
 source('00_Functions.R')
 
 ## Load  data files
-#data.dir <- "data/" # to run on C:
-data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to run on O:/
+data.dir <- "data/" # to run on C:
+#data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to run on O:/
 
-rdata<- read.csv(paste(data.dir,"/bev.csv",sep = ""))
+financial
+units
+priority_raw
+
 rdKey <- read.csv(paste(data.dir,"/RD_key.csv",sep = ""))
-
-#head(rdata)
-#unique(rdata$Company)
-#unique(rdata$Catergory)
-#unique(rdata$Measure)
 
 #------------------------------------------------------
 # extract the population data and export as csv
-pop <- rdata %>% dplyr::filter(Measure == 'Population-') %>%
-          dplyr::select(-c(Company,Catergory,Measure))
-#write.csv(pop, paste(data.dir,"popbc.csv",sep = ""), row.names = FALSE)
-
-pop.long <- pop %>% gather("year", "n",2:19)
-pop.long$year = sub("X","",pop.long$year)  # get rid of x on year column
-pop.long$pop <- replaceCommas(pop.long$n) # fix the fromatting in numeric
-head(pop.long)
+pop <- priority_raw %>%
+          dplyr::filter(measure == 'Population-') %>%
+          dplyr::select(-c(organization,measure)) %>%
+          gather("year", "n", 2:19) %>%
+          mutate(pop = as.numeric(n)) %>%
+          dplyr::select(-c(n))
 
 #-------------------------------------------------------
 
 # extract the raw unit data and add with population and maps....
-pdata <- rdata %>% dplyr::filter(Catergory == 'Priority Measures') %>%
-  dplyr::select(-c(Catergory)) %>%
-  dplyr::filter(!Company == 'EncorpPacific_BRCCC')%>%
-  dplyr::filter(Measure %in% c("Absolute Collection-Units Collected-","Absolute Collection-Weight Collected (Tonnes)-")) %>%
-  gather("year", "n",4:21)
-
-pdata$year = sub("X","",pdata$year)  # get rid of x on year column
-pdata$n <- replaceCommas(pdata$n) # fix the fromatting in numeric
+priority <- priority_raw %>%
+  dplyr::filter(measure %in%
+                  c("Absolute Collection-Units Collected-",
+                    "Absolute Collection-Weight Collected (Tonnes)-")) %>%
+  dplyr::select(-c(organization)) %>%
+  gather("year", "n",3:length(.)) %>%
+  mutate(n = as.numeric(n))
 
 # group together the multiple companies
-sum.pdata <- pdata %>% group_by(Measure, Region, year) %>%
-  summarise(total = sum(n,na.rm = TRUE))
+sum.pdata <- priority %>%
+  group_by(measure, regional_district, year) %>%
+  summarise(total = sum(n, na.rm = TRUE))
 
       ## do a basic graph to check it out
-      #ggplot(sum.pdata,aes(year,total,fill=Measure)) +
+      #ggplot(sum.pdata,aes(year,total,fill=measure)) +
       #  geom_bar(stat="identity",position="dodge") +
       #  labs(title="Unclaimed deposits and consumer-expenditure", x = "Year", y = " Amount ($1,000,000)")
 
 # merge in the pop.long form data
-ppdata <- left_join(sum.pdata,pop.long, by = c("Region","year")) %>%
-  dplyr::select(-c('n')) %>%
-  mutate(unit.per.cap = total / pop)
+ppdata <- left_join(sum.pdata, pop,
+                    by = c("regional_district","year")) %>%
+      mutate(unit.per.cap = total / pop)
 
 # break up into weight and units
-units.per.cap <- ppdata %>% filter(Measure == 'Absolute Collection-Units Collected-' )
-weight.per.cap <-  ppdata %>% filter(Measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
+units.per.cap <- ppdata %>%
+      filter(measure == 'Absolute Collection-Units Collected-' )
+weight.per.cap <-  ppdata %>%
+      filter(measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
 
-    ## Units per capita
-    ggplot(units.per.cap,aes(year,unit.per.cap)) + facet_wrap(~Region)+
-      geom_bar(stat="identity",position="dodge") +
-      labs(title="Regional Units Recycled per capita", x = "Year", y = " units per capita")
+
+## Units per capita
+    ggplot(units.per.cap,aes(year,unit.per.cap)) +
+      facet_wrap(~ regional_district) +
+      geom_bar(stat = "identity",position = "dodge") +
+      labs(title = "Regional Units Recycled per capita",
+           x = "Year", y = "units per capita")
     ggsave(paste('out/',"04_Beverage_UnitsPerCap.png"))
 
     ## weight per capita
-    ggplot(weight.per.cap,aes(year,unit.per.cap)) + facet_wrap(~Region)+
-      geom_bar(stat="identity",position="dodge") +
-      labs(title="Regional weight of recycling (tonnes) per capita", x = "Year", y = "weight per cap (tonnes")
+    ggplot(weight.per.cap,aes(year,unit.per.cap)) +
+      facet_wrap(~ regional_district) +
+      geom_bar(stat = "identity",position="dodge") +
+      labs(title = "Regional weight of recycling (tonnes) per capita",
+           x = "Year", y = "weight per cap (tonnes")
     ggsave(paste('out/',"04_Beverage_weightPerCap.png"))
 
 
     # calculate the provincial average
-    bc.units.per.cap <- units.per.cap %>% na.omit() %>%
+    bc.units.per.cap <- units.per.cap %>%
+      na.omit() %>%
       group_by(year) %>%
-      summarise(BCave = mean(unit.per.cap))
+      summarise(bc_ave = mean(unit.per.cap))
 
-    regional.units.per.cap <- units.per.cap %>% na.omit() %>%
-      group_by(year,Region) %>%
+    regional.units.per.cap <- units.per.cap %>%
+      na.omit() %>%
+      group_by(year,regional_district) %>%
       summarise(ave = mean(unit.per.cap))
 
     # join the regional and prov. ave data and calculate the difference
 
-    diff.df <-left_join(regional.units.per.cap,bc.units.per.cap, by = 'year')
-    diff.df <- diff.df %>% mutate(delta = ave-BCave)
-    diff.df$response <- ifelse( diff.df$delta < 0, "below", "above")
+    diff.df <-left_join(regional.units.per.cap,
+                        bc.units.per.cap, by = 'year')
+    diff.df <- diff.df %>%
+          mutate(delta = ave-bc_ave) %>%
+          mutate(response = ifelse(delta < 0,"below", "above")) %>%
+          mutate(response = ifelse(delta == 0,"No data",response))
+
     # calculate the deviation from average
 
-    # Diverging Barcharts
-    p4 <- ggplot(diff.df, aes(x=Region, y=delta,label=delta)) + facet_wrap(~year) +
+# Diverging barcharts
+    ggplot(diff.df, aes(x = regional_district,
+                     y = delta,
+                     label= delta)) +
+                  facet_wrap(~year) +
       geom_bar(stat='identity', aes(fill=response), width=.5)  +
      scale_fill_manual(name="Mileage",
-                        labels = c("Above Average", "Below Average"),
-                        values = c("above"="#00ba38", "below"="#f8766d")) +
+                        labels = c("Above Average", "Below Average", "No Data"),
+                        values = c("above"="#00ba38", "below"="#f8766d", "no data" = 'grey')) +
       labs(title= "Regional difference from the average BC units per capita recycling") +
       coord_flip()
-    ggsave(paste('out/',"05_regional_bc_ave_unitsPerCap_per_yr.png"))
+    #ggsave(paste('out/',"05_regional_bc_ave_unitsPerCap_per_yr.png"))
 
     # Diverging Barcharts (all years)
     p5 <-  ggplot(diff.df, aes(x=Region, y=delta, label = delta)) +
