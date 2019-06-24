@@ -16,11 +16,18 @@ excel_file <- file.path("C:/Temp/Github/recycling-indicator/data",
 
 list.files("C:/Temp/Github/recycling-indicator/data")
 
-
-rename_by_pos = function(df, index, new_name){
+rename_by_pos <- function(df, index, new_name){
   colnames(df)[index] = new_name
   df
 }
+
+ncols_from_range <- function(range) {
+  diff(letter_to_num(strsplit(gsub("[0-9]", "", range), ":")[[1]])) + 1
+}
+
+
+#-------------------------------------------------
+# Beverage functions and data extract
 
 read_bevs_recovery <- function(file, range, org) {
   read_excel(excel_file, sheet = "Bevs(2000-2017)",
@@ -68,12 +75,8 @@ read_bevs_recovery_raw <- function(file, range,org) {
     select(organization, everything())
 }
 
-
-
-
-ncols_from_range <- function(range) {
-  diff(letter_to_num(strsplit(gsub("[0-9]", "", range), ":")[[1]])) + 1
-}
+#--------------------------------------------------------------
+# extract Bev data
 
 encorp_priority <- read_bevs_recovery(excel_file, "B5:U38", "Encorp Pacific")
 bc_brewers_priority <- read_bevs_recovery(excel_file, range = "B138:U170", "BC Brewers")
@@ -93,4 +96,9 @@ bc_brewers_priority_raw <- read_bevs_recovery_raw(excel_file, "B209:U293", "BC B
 financial <- rbind(encorp_financial, bc_brewers_financial)
 units <- rbind(encorp_units, bc_brewers_units)
 priority_raw <- rbind(encorp_priority_raw, bc_brewers_priority_raw )
+
+#------------------------------------------------------------------
+
+# Functions to get Oil data from xlxs.
+
 
