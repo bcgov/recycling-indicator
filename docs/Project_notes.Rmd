@@ -109,7 +109,7 @@ pop.long <- gather(pop, "year", "n", 2:19) %>%
   mutate(year = sub("X", "", year),  # get rid of x on year column
          pop = replaceCommas(n)) # fix the fromatting in numeric
 
-head(pop.long)
+#head(pop.long)
 ```
 
 ## Explore the non spatial data (all regions combined): Financial, units moved and other
@@ -146,7 +146,9 @@ sum.fdata <- sum.fdata %>%
 ggplot(sum.fdata, aes(year, total, fill = Measure)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Unclaimed deposits and consumer-expenditure", 
-       x = "Year", y = " Amount ($1,000,000)")
+       x = "Year", y = " Amount ($1,000,000)") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
 #ggsave(paste('out/',"01_Beverage_UnitsMoved.png"))
 
 ```
@@ -177,7 +179,8 @@ sum.udata <- udata %>%
 ggplot(sum.udata, aes(year, total, fill = Measure)) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Recycled Units Returned and Sold", 
-       x = "Year", y = "Total no. (millions)")
+       x = "Year", y = "Total no. (millions)") + 
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
    # ggsave(paste('out/',"01_Beverage_UnitsMoved.png"))
 ```
    
