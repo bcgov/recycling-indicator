@@ -101,4 +101,54 @@ priority_raw <- rbind(encorp_priority_raw, bc_brewers_priority_raw )
 
 # Functions to get Oil data from xlxs.
 
+read_oil_recovery <- function(file, range,type) {
+read_excel(excel_file, sheet = "Oil(2003-2017) ",
+               range = range,
+               col_types = c("text", rep("numeric", cols - 5)),
+               col_names = c("regional districts",
+                   seq(2003, length.out = cols - 5))) %>%
+          mutate(measure = type) %>%
+          select(measure, everything())
+  }
 
+
+read_oil_financial <- function(file, range) {
+  cols <- ncols_from_range(range)
+  read_excel(excel_file, sheet = "Oil(2003-2017) ",
+             range = range,
+             col_types = c("text", rep("numeric", cols - 1)),
+             col_names = c("measure",
+                           seq(2003, length.out = cols - 1))) %>%
+    select(measure, everything())
+}
+
+
+read_oil_units <- function(file, range, org) {
+  cols <- ncols_from_range(range)
+read_excel(excel_file, sheet = "Oil(2003-2017) ",
+             range = range,
+             col_types = c("text", rep("numeric", cols - 1)),
+             col_names = c("measure",
+                seq(2003, length.out = cols - 1))) %>%
+        select(measure, everything())
+}
+
+
+#------------------------------------------------
+# Extract Oil data
+
+oil_recovery <- read_oil_recovery(excel_file, "B12:Q40","oil_lt_pp")
+filter_recovery <- read_oil_recovery(excel_file, "B42:Q70","filters_kg_pp")
+contain_recovery <- read_oil_recovery(excel_file, "B72:Q100", "containers_kg_pp")
+anti_recovery <- read_oil_recovery(excel_file, "B102:Q130", "antifreeze_kg_pp")
+
+recovery_pp <- rbind(oil_recovery,
+                     filter_recovery,
+                     contain_recovery,
+                     anti_recovery)
+
+oil_financial <- read_oil_financial(excel_file, "B147:Q152")
+
+oil_units <- read_oil_units(excel_file, "B154:Q163")
+
+#------------------------------------------------------
