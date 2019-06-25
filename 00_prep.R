@@ -288,31 +288,28 @@ ggplot(odata, aes(year,total,fill=Measure))+
 ###################################################################################################
 ## OIL Lubraicant and Filters
 
-odata<- read.csv(paste(data.dir,"/LubOilFilt.csv",sep = ""))
-#data alread populated by capita?
+oil_units
+oil_financial
+recovery_pp
+
 
 # extract the raw unit data and add with population and maps....
-pdata <- odata %>% dplyr::filter(Catergory == 'Priority Measures') %>%
-  dplyr::filter(!Region == '') %>%
-  gather("year", "n",4:18)
-
-pdata$year = sub("X","",pdata$year)  # get rid of x on year column
-pdata$n <- replaceCommas(pdata$n) # fix the fromatting in numeric
-pdata$n <- as.numeric(as.character(pdata$n)) # convert to number
-pdata<- pdata[complete.cases(pdata),]
+pdata <- recovery_pp %>%
+  dplyr::filter(!regional_district == '') %>%
+  gather("year", "n",3:length(.))
 
 ## do a basic graph to check it out
-ggplot(pdata,aes(year,n,fill=Measure)) +
-  geom_bar(stat="identity",position="dodge") +
-  labs(title="Absolute collection (kg/litres) per person", x = "Year", y = "Collection (kg) per person")
+ggplot(pdata, aes(year, n, fill = measure)) +
+  geom_bar(stat = "identity",position = "dodge") +
+  labs(title = "Absolute collection (kg/litres) per person", x = "Year", y = "Collection (kg) per person")
 
 # used oil is order of magnitude more!
-pdata.1 <- pdata %>% dplyr::filter(!Measure == 'Used Oil - Absolute Collection (litres)-Per Person')
-pdata.1<- pdata.1[complete.cases(pdata.1),]
+pdata.1 <- pdata %>% dplyr::filter(!measure == 'oil_lt_pp')
+pdata.1<- pdata.1[complete.cases(pdata.1), ]
 
 
 ## do a basic graph to check it out
-ggplot(pdata.1,aes(year,n,fill=Measure)) +
+ggplot(pdata.1,aes(year, n, fill = measure)) +
   geom_bar(stat="identity",position="dodge") +
   labs(title="Absolute collection (kg) per person", x = "Year", y = "Collection (kg) per person")
 

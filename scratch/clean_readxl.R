@@ -102,15 +102,15 @@ priority_raw <- rbind(encorp_priority_raw, bc_brewers_priority_raw )
 # Functions to get Oil data from xlxs.
 
 read_oil_recovery <- function(file, range,type) {
+  cols <- ncols_from_range(range)
 read_excel(excel_file, sheet = "Oil(2003-2017) ",
                range = range,
-               col_types = c("text", rep("numeric", cols - 5)),
-               col_names = c("regional districts",
-                   seq(2003, length.out = cols - 5))) %>%
+               col_types = c("text", rep("numeric", cols - 1)),
+               col_names = c("regional_district",
+                   seq(2003, length.out = cols - 1))) %>%
           mutate(measure = type) %>%
           select(measure, everything())
   }
-
 
 read_oil_financial <- function(file, range) {
   cols <- ncols_from_range(range)
@@ -152,3 +152,6 @@ oil_financial <- read_oil_financial(excel_file, "B147:Q152")
 oil_units <- read_oil_units(excel_file, "B154:Q163")
 
 #------------------------------------------------------
+oil_units
+oil_financial
+recovery_pp
