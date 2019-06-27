@@ -26,8 +26,7 @@ ncols_from_range <- function(range) {
 }
 
 
-#-------------------------------------------------
-# Beverage functions and data extract
+# Beverage functions and data extract -------------------------
 
 read_bevs_recovery <- function(file, range, org) {
   read_excel(excel_file, sheet = "Bevs(2000-2017)",
@@ -97,9 +96,7 @@ financial <- rbind(encorp_financial, bc_brewers_financial)
 units <- rbind(encorp_units, bc_brewers_units)
 priority_raw <- rbind(encorp_priority_raw, bc_brewers_priority_raw )
 
-#------------------------------------------------------------------
-
-# Functions to get Oil data from xlxs.
+# Functions to get Oil data from xlxs.--------------------------------
 
 read_oil_recovery <- function(file, range,type) {
   cols <- ncols_from_range(range)
@@ -109,8 +106,9 @@ read_excel(excel_file, sheet = "Oil(2003-2017) ",
                col_names = c("regional_district",
                    seq(2003, length.out = cols - 1))) %>%
           mutate(measure = type) %>%
-          select(measure, everything())
-  }
+          select(measure, everything()
+  )
+}
 
 read_oil_financial <- function(file, range) {
   cols <- ncols_from_range(range)
@@ -134,8 +132,7 @@ read_excel(excel_file, sheet = "Oil(2003-2017) ",
 }
 
 
-#------------------------------------------------
-# Extract Oil data
+# Extract oil data -------------------------------
 
 oil_recovery <- read_oil_recovery(excel_file, "B12:Q40","oil_lt_pp")
 filter_recovery <- read_oil_recovery(excel_file, "B42:Q70","filters_kg_pp")
