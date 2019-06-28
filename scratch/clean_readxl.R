@@ -10,11 +10,11 @@ excel_file <- file.path(
 )
 
 # Or use local copy to test
-excel_file <- file.path("C:/Temp/Github/recycling-indicator/data",
-          "EPR annual report info roll up 2017.xlsb.xlsx"
-)
+#excel_file <- file.path("C:/Temp/Github/recycling-indicator/data",
+#          "EPR annual report info roll up 2017.xlsb.xlsx"
+#)
 
-list.files("C:/Temp/Github/recycling-indicator/data")
+#list.files("C:/Temp/Github/recycling-indicator/data")
 
 rename_by_pos <- function(df, index, new_name){
   colnames(df)[index] = new_name
@@ -149,6 +149,26 @@ oil_financial <- read_oil_financial(excel_file, "B147:Q152")
 oil_units <- read_oil_units(excel_file, "B154:Q163")
 
 #------------------------------------------------------
-oil_units
-oil_financial
-recovery_pp
+#oil_units
+#oil_financial
+#recovery_pp
+
+# Functions to get pharm data from xlxs.--------------------------------
+
+range = "B81:U164"
+file = excel_file
+
+#read_pharm_recovery <- function(file, range) {
+  cols <- ncols_from_range(range)
+x =   read_excel(excel_file, sheet = "Pharm(2000-2017)",
+             range = range,
+             col_types = c("text", "text", rep("numeric", cols - 2)),
+             col_names = c("measure","regional_district",
+                           seq(2000, length.out = cols - 2)))
+    )
+}
+
+
+
+range = "B80:U164"
+file = excel_file
