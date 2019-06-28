@@ -288,12 +288,9 @@ ggplot(odata, aes(year,total,fill=Measure))+
 #------------------------------------------------------------
 
 ###################################################################################################
-## OIL Lubraicant and Filters
+## OIL Lubraicant and Filters ------------------------------
 
-oil_units
-oil_financial
-recovery_pp
-
+#data = oil_units, oil_financial, recovery_pp
 
 # extract the raw unit data and add with population and maps....
 pdata <- recovery_pp %>%
@@ -386,4 +383,45 @@ p_dif_yr <- ggplot(diff.df.yr, aes(x = regional_district,
 p_dif_yr
 
 # note this combines all the measures combined( not split)
+
+# get oil financial data -------------------------------------
+
+oil.fdata <-oil_financial %>%
+  gather("year", "n", 3:length(.)) %>%
+  mutate(n.m = n/1000000)
+
+to.keep <- c("Expenditure-Total","Revenue-Total")
+
+sum.fdata <- oil.fdata %>%
+  group_by(measure, year) %>%
+  summarise(total = sum(n.m,na.rm = TRUE)) %>%
+  filter(measure %in% to.keep)
+
+# Does spending more on consumer awareness decrease unclaimed deposits
+ggplot(sum.fdata, aes(year, total, fill = measure)) +
+  geom_bar(stat="identity",position="dodge") +
+  labs(title=" Oil Recycling Expenditure and Revenue", x = "Year", y = " Amount ($1,000,000)")
+
+
+# oil units moved -----------------------------------
+
+udata <- oil_units %>%
+  gather("year", "n",2:length(.)) %>%
+  mutate(n.m = n/1000000)
+
+# summarise per year
+sum.udata <- udata %>%
+  group_by(measure,year) %>%
+  summarise(total = sum(n.m,na.rm = TRUE))
+
+unique(sum.udata$measure)
+
+# make a pretty graph
+ggplot(sum.udata, aes(year, total, fill = measure)) +
+  facet_wrap(~measure) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Recycled Units Returned and Sold",
+       x = "Year", y = "Total no. (millions)")
+
+## this needs some more work to split out the data types
 
