@@ -18,8 +18,8 @@ lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
 source('00_Functions.R')
 
 ## Load  data files
-data.dir <- "data/" # to run on C:
-#data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to run on O:/
+#data.dir <- "data/" # to run on C:
+data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to run on O:/
 
 rdKey <- read.csv(paste(data.dir,"/RD_key.csv",sep = ""))
 
@@ -264,8 +264,7 @@ ggplot(sum.udata1, aes(x = year, y = RecoveryRate))+
       labs(title="Recycled Units Recovery Rate (%)", x = "Year", y = "Recovery Rate %")
   ggsave(paste('out/',"02_Beverage_UnitsMoved.png"))
 
-#----------------------------------------------------------------
-# This is yet to be updated to new version of excel data prep
+# Other catergories : Still to be updated # NOT WORKING ---------------------------------------------------------------
 # Grab data from "other catergory"
 
 odata <- rdata %>% dplyr::filter(Catergory == 'Other') %>%
@@ -316,14 +315,13 @@ ggplot(pdata.1,aes(year, n, fill = measure)) +
   geom_bar(stat="identity",position="dodge") +
   labs(title="Absolute collection (kg) per person", x = "Year", y = "Collection (kg) per person")
 
-
 # calculate the provincial average
-bc_units_per_cap_yr <- pdata %>%
+bc_units_per_cap_yr <- pdata %>%  # per yr
   na.omit() %>%
   group_by(year, measure) %>%
   summarise(BCave = mean(n))
 
-bc_units_per_cap <- pdata %>%
+bc_units_per_cap <- pdata %>%     # all years
   na.omit() %>%
   group_by(measure) %>%
   summarise(BCave = mean(n))
@@ -344,13 +342,18 @@ diff.df <-left_join(regional_units_per_cap,
           mutate(delta = ave - BCave,
                  response = ifelse(delta < 0, "below ave", "above ave"))
 
-unique(diff.df$measure)
+# join the regional and prov. ave data and calculate the difference per year
+diff.df.yr <-left_join(regional_units_per_cap_yr,
+                    bc_units_per_cap_yr,
+                    by = c('measure','year')) %>%
+                mutate(delta = ave - BCave,
+                    response = ifelse(delta < 0,
+                          "below ave", "above ave"))
 
-diff.df <- diff.df %>% filter(measure =="oil_lt_pp" )
-# Diverging Barcharts
-p4 <- ggplot(diff.df, aes(x = regional_district,
+# Diverging Barcharts ( all years combined )
+p_dif <- ggplot(diff.df, aes(x = regional_district,
                           y = delta,label = delta)) +
-                  #facet_wrap(~ measure) +
+                  facet_wrap(~measure)+
                   geom_point()+
                   geom_bar(stat = 'identity',
                            aes(fill = response), width =.5)  +
@@ -358,22 +361,29 @@ p4 <- ggplot(diff.df, aes(x = regional_district,
                           labels = c("Above Average", "Below Average"),
                           values = c("above ave" = "#00ba38",
                                     "below ave" = "#f8766d")) +
-                labs(title = "Regional difference from the average BC units per capita recycling") +
-  coord_flip() #+
-  #xlim(-19,135)
+                labs(title = "Regional difference from the average BC
+                              units per capita recycling", y = " Difference from BC Ave") +
+                coord_flip() #+
+p_dif
 
-p4
-#ggsave(paste('out/',"05_regional_bc_ave_unitsPerCap_per_yr.png"))
+# Diverging Barcharts ( per year )
 
+#diff.df <- diff.df %>% filter(measure =="oil_lt_pp" )
 # Diverging Barcharts (all years)
-p5 <-  ggplot(diff.df, aes(x=Region, y=delta, label = delta)) +
-  geom_bar(stat='identity', aes(fill=response), width=.5)  +
-  scale_fill_manual(name="Mileage",
+p_dif_yr <- ggplot(diff.df.yr, aes(x = regional_district,
+                             y = delta,label = delta)) +
+  facet_wrap(~year)+
+  geom_point()+
+  geom_bar(stat = 'identity',
+           aes(fill = response), width =.5)  +
+  scale_fill_manual(name = "Mileage",
                     labels = c("Above Average", "Below Average"),
-                    values = c("above"="#00ba38", "below"="#f8766d")) +
-  labs(title= "Regional difference from the average BC units per capita recycling") +
-  coord_flip()
-ggsave(paste('out/',"06_regional_bc_ave_unitsPerCap_allyrs.png"))
+                    values = c("above ave" = "#00ba38",
+                               "below ave" = "#f8766d")) +
+  labs(title = "Regional difference from the average BC
+                              units per capita recycling", y = " Difference from BC Ave") +
+  coord_flip() #+
+p_dif_yr
 
-
+# note this combines all the measures combined( not split)
 
