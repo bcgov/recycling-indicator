@@ -33,7 +33,8 @@ data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to r
 #
 # - Program Financials (2014 - 2017) Lots of holes with who reported and who didnt
 
-# Read in population data
+
+# Read in population data -------------------------------
 # BC Pop Stats (ignore and get directly from Stats Can)
 # https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx
 # manual export of population per regional district (2000 - 2018) and store in data folder
@@ -45,7 +46,9 @@ pop <- pop.0 %>%
               n = Total, year = as.character(Year)) %>%
        select(-c('ï..','Gender','Regional.District','Total',"Year"))
 
-# extract the raw unit data and add with population and maps ---------
+#######################################################################
+# Beverage ------------------------------------------------------
+# extract the raw unit data
 priority <- priority_raw %>%
       dplyr::filter(measure %in%
                   c("Absolute Collection-Units Collected-",
@@ -219,7 +222,7 @@ to.remove <-c("Total reported revenues - Encorp","Total reported expenditure* - 
 to.keep <- c('Deposits Charged','Deposits Refunded','Expenditure-Consumer Awareness')
 
 sum.fdata <- sum.fdata %>%
-  filter(measure %in% to.keep )
+    filter(measure %in% to.keep )
 
 #Deposits charged and refunded over time
 
@@ -233,27 +236,27 @@ ggplot(sum.fdata, aes(year, total, fill = measure)) +
 # Grab the units moved
 
 udata <- units %>%
-  dplyr::select(-c(organization)) %>%
-  gather("year", "n",2:length(.)) %>%
-  mutate(n.m = n/1000000)
+    dplyr::select(-c(organization)) %>%
+    gather("year", "n",2:length(.)) %>%
+    mutate(n.m = n/1000000)
 
 # summarise per year
 sum.udata <- udata %>%
   group_by(measure,year) %>%
   summarise(total = sum(n.m,na.rm = TRUE))
 
-  # make a pretty graph
-  ggplot(sum.udata, aes(year, total, fill = measure)) +
-    geom_bar(stat = "identity", position = "dodge") +
-    labs(title = "Recycled Units Returned and Sold",
+# make a pretty graph
+ggplot(sum.udata, aes(year, total, fill = measure)) +
+      geom_bar(stat = "identity", position = "dodge") +
+      labs(title = "Recycled Units Returned and Sold",
         x = "Year", y = "Total no. (millions)")
-    ggsave(paste('out/',"01_Beverage_UnitsMoved.png"))
+      #ggsave(paste('out/',"01_Beverage_UnitsMoved.png"))
 
 #calculate the recovery rate and make a line plot
 sum.udata1 <-  udata %>%
-  group_by(measure,year) %>%
-  summarise(total = sum(n.m, na.rm = TRUE)) %>%
-  spread(., measure, total)
+      group_by(measure,year) %>%
+      summarise(total = sum(n.m, na.rm = TRUE)) %>%
+      spread(., measure, total)
 
 sum.udata1$RecoveryRate = sum.udata1$'Units Recovered' / sum.udata1$'Units Sold' *100
 sum.udata1 <- sum.udata1[-1,]
@@ -263,7 +266,7 @@ ggplot(sum.udata1, aes(x = year, y = RecoveryRate))+
       ylim(60,100) +
       geom_hline(yintercept = 75, color = "red", lty = 2) +
       labs(title="Recycled Units Recovery Rate (%)", x = "Year", y = "Recovery Rate %")
-  ggsave(paste('out/',"02_Beverage_UnitsMoved.png"))
+ # ggsave(paste('out/',"02_Beverage_UnitsMoved.png"))
 
 # Other catergories : Still to be updated # NOT WORKING ---------------------------------------------------------------
 # Grab data from "other catergory"
@@ -289,10 +292,8 @@ ggplot(odata, aes(year,total,fill=Measure))+
 
 ###################################################################################################
 ## OIL Lubraicant and Filters ------------------------------
+# extract the raw unit data
 
-#data = oil_units, oil_financial, recovery_pp
-
-# extract the raw unit data and add with population and maps....
 pdata <- recovery_pp %>%
   dplyr::filter(!regional_district == '') %>%
   gather("year", "n",3:length(.))
@@ -362,9 +363,6 @@ p_dif <- ggplot(diff.df, aes(x = regional_district,
 p_dif
 
 # Diverging Barcharts ( per year )
-
-#diff.df <- diff.df %>% filter(measure =="oil_lt_pp" )
-# Diverging Barcharts (all years)
 p_dif_yr <- ggplot(diff.df.yr, aes(x = regional_district,
                              y = delta,label = delta)) +
   facet_wrap(~year)+
@@ -477,22 +475,21 @@ sum.udata.l <- sum.udata %>%
       mutate(prop.recovered = `Total Collected`/`Total Sold`)
 
 ggplot(sum.udata.l, aes(x = year, y = prop.recovered))+
-     geom_point() +
-     ylim(0,1) +
-     labs(title="Recycled Units Recovery Rate (%)",
+      geom_point() +
+      ylim(0,1) +
+      labs(title="Recycled Units Recovery Rate (%)",
           x = "Year", y = "Recovery Rate %")
 
 #########################################################
 # pfp indicator ---------------------------------------
 
-pfp_recovery
 pfp_financial
 pfp_units
 
 # extract the raw unit data and add with population and maps....
 pfp_data <- pfp_recovery %>%
-  dplyr::filter(!regional_district == '') %>%
-  gather("year", "total",3:length(.))
+      dplyr::filter(!regional_district == '') %>%
+      gather("year", "total",3:length(.))
 
 ## do a basic graph to check it out
 ggplot(pfp_data, aes(year, total , fill = measure)) +
@@ -561,9 +558,9 @@ p_dif
 
 
 
+# pfp financial -------------------------------
 
-
-
+# pfp units ---------------------------
 
 
 
