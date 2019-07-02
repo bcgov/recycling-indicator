@@ -186,10 +186,29 @@ read_pfp_recovery <- function(file, range) {
         mutate(test = str_detect(measure_long,"Population|Per Person")) %>%
         filter(test == "FALSE") %>%
         mutate(regional_district =  gsub(".*-(.*)", "\\1", measure_long),
+<<<<<<< HEAD
                measure = 'Absolute Collection- Total Tubskids') %>%
         select(measure, regional_district, everything()) %>%
         select(-c('foo',"measure_long","test")) %>%
         select(measure, regional_district, everything())
+=======
+               measure == 'Absolute Collection- Total Tubskids')
+        select(measure, regional_district, everything())
+
+        mutate(measure =  unlist(strsplit(x$measure_long, "\\-" ))[1],
+            regional_district <- unlist(strsplit(x$measure_long, "\\-" ))[3])
+
+    mutate(measure = str_split_fixed(measure_long,"-",2)) %>% #[[1]])
+    select(measure, everything())
+
+%>%
+    mutate(measure = strsplit(measure_long,"-")[[1]][1] ,
+          regional_district = strsplit(measure_long,"-")[[1]][[3]]) %>%
+
+    select(measure, regional_district, everything()) %>%
+    select(-c('foo',"measure_long")) %>%
+    select(measure, regional_district, everything())
+>>>>>>> 1805cb4a31b97d952bbd1a99cc0b9e093ca284f3
 }
 
 pfp_recovery <- read_pfp_recovery(excel_file,"B98:U187")
