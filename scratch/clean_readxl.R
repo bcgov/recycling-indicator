@@ -3,11 +3,12 @@ library(cellranger) # letter_to_num
 library(dplyr)
 library(tidyr)
 library(envreportutils)
+library(stringr)
 
-excel_file <- file.path(
-  soe_path("Operations ORCS/Data - Working/sustainability/EPR"),
-  "EPR annual report info roll up 2017.xlsb.xlsx"
-)
+#excel_file <- file.path(
+#  soe_path("Operations ORCS/Data - Working/sustainability/EPR"),
+#  "EPR annual report info roll up 2017.xlsb.xlsx"
+#)
 
 # Or use local copy to test
 excel_file <- file.path("C:/Temp/Github/recycling-indicator/data",
@@ -167,6 +168,7 @@ read_tire_financial <- function(file, range) {
     select(measure, everything())
 }
 
+
 tire_financial <- read_tire_financial(excel_file,"B31:M37")
 
 tire_units <- read_tire_units(excel_file,"B39:M49")
@@ -176,37 +178,18 @@ tire_units <- read_tire_units(excel_file,"B39:M49")
 
 read_pfp_recovery <- function(file, range) {
   cols <- ncols_from_range(range)
-
-  range = "B98:U187"
-x =   read_excel(excel_file, sheet = "Paints-Flam-Pest(2000-2017)",
+  read_excel(excel_file, sheet = "Paints-Flam-Pest(2000-2017)",
              range = range,
              col_types = c("text", "text", rep("numeric", cols - 2)),
              col_names = c("measure_long","foo",
                            seq(2000, length.out = cols - 2))) %>%
         mutate(test = str_detect(measure_long,"Population|Per Person")) %>%
         filter(test == "FALSE") %>%
-        mutate(regional_district =  gsub(".*-(.*)", "\\1", measure_long))
-
-      %>%
-      mutate(measure1 =  gsub(".*-(.*)", "\\2", measure_long))
-      #select(measure, everything())
-        x1 <- x %>%
-        filter(str_detect('measure_long', "-"))
-
-
-        mutate(measure =  unlist(strsplit(x$measure_long, "\\-" ))[1],
-            regional_district <- unlist(strsplit(x$measure_long, "\\-" ))[3])
-
-    mutate(measure = str_split_fixed(measure_long,"-",2)) %>% #[[1]])
-    select(measure, everything())
-
-%>%
-    mutate(measure = strsplit(measure_long,"-")[[1]][1] ,
-          regional_district = strsplit(measure_long,"-")[[1]][[3]]) %>%
-
-    select(measure, regional_district, everything()) %>%
-    select(-c('foo',"measure_long")) %>%
-    select(measure, regional_district, everything())
+        mutate(regional_district =  gsub(".*-(.*)", "\\1", measure_long),
+               measure = 'Absolute Collection- Total Tubskids') %>%
+        select(measure, regional_district, everything()) %>%
+        select(-c('foo',"measure_long","test")) %>%
+        select(measure, regional_district, everything())
 }
 
 pfp_recovery <- read_pfp_recovery(excel_file,"B98:U187")
