@@ -10,9 +10,9 @@ excel_file <- file.path(
 )
 
 # Or use local copy to test
-#excel_file <- file.path("C:/Temp/Github/recycling-indicator/data",
-#          "EPR annual report info roll up 2017.xlsb.xlsx"
-#)
+excel_file <- file.path("C:/Temp/Github/recycling-indicator/data",
+          "EPR annual report info roll up 2017.xlsb.xlsx"
+)
 
 #list.files("C:/Temp/Github/recycling-indicator/data")
 
@@ -91,7 +91,6 @@ bc_brewers_priority_raw <- read_bevs_recovery_raw(excel_file, "B209:U293", "BC B
 
 
 # combine data sets into single file per metric (financial/units/priority)
-
 financial <- rbind(encorp_financial, bc_brewers_financial)
 units <- rbind(encorp_units, bc_brewers_units)
 priority_raw <- rbind(encorp_priority_raw, bc_brewers_priority_raw )
@@ -148,17 +147,44 @@ oil_financial <- read_oil_financial(excel_file, "B147:Q152")
 
 oil_units <- read_oil_units(excel_file, "B154:Q163")
 
-#------------------------------------------------------
-#oil_units
-#oil_financial
-#recovery_pp
+# TIRE INDICATOR ------------------------------------------------------
+
+read_tire_units <- function(file, range) {
+    cols <- ncols_from_range(range)
+    read_excel(excel_file, sheet = "Tires(2007-2017)",
+               range = range,
+               col_types = c("text", rep("numeric", cols - 1)),
+               col_names = c("measure",
+                             seq(2007, length.out = cols - 1)))
+
+}
+
+read_tire_financial <- function(file, range) {
+  cols <- ncols_from_range(range)
+  read_excel(excel_file, sheet = "Tires(2007-2017)",
+             range = range,
+             col_types = c("text", rep("numeric", cols - 1)),
+             col_names = c("measure",
+                           seq(2007, length.out = cols - 1))) %>%
+    select(measure, everything())
+}
+
+
+tire_financial <- read_tire_financial(excel_file,"B31:M37")
+tire_units <- read_tire_units(excel_file,"B39:M49")
+
+
+
+
+
+
 
 # Functions to get pharm data from xlxs.--------------------------------
 
 range = "B81:U164"
 file = excel_file
 
-#read_pharm_recovery <- function(file, range) {
+# read_pharm_recovery <- function(file, range) {
   cols <- ncols_from_range(range)
 x =   read_excel(excel_file, sheet = "Pharm(2000-2017)",
              range = range,

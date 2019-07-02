@@ -24,16 +24,16 @@ data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to r
 ## DATA INCLUDES
 # - beverage       (drafted)
 # - oil filters    (drafted)
-# - tires
+# - tires           ( regional data doesn't match other regions)
 # - Paints-Flam-Pest
 # - Elect
-# - Lead-Acid Batteries (not much data - drop?)
-# - Pharmacy (straight-forward)
-# - PPP (straight-forward)
+# - Lead-Acid Batteries         (not much data - drop?)
+# - Pharmacy          (straight-forward)
+# - PPP               (straight-forward)
+#
 # Also some summaries
 # - BC Pop Stats (ignore and get directly from Stats Can )
-# - Program Financials
-
+# - Program Financials (2014 - 2017) Lots of holes with who reported and who didnt
 
 
 
@@ -440,4 +440,53 @@ ggplot(sum.udata, aes(year, total, fill = measure)) +
        x = "Year", y = "Total no. (millions)")
 
 ## this needs some more work to split out the data types
+
+
+# TIRE ## ---------------------------------------------------
+
+# get oil financial data -------------------------------------
+
+tire.fdata <-tire_financial %>%
+  gather("year", "n", 2:length(.)) %>%
+  mutate(n.m = n/1000000)
+
+to.keep <- c("Expenditure-Total","Revenue-Total",
+             "Expenditure-Communications & Education",
+             "Expenditure-Program Incentives",
+             "Balance")
+
+sum.fdata <- tire.fdata %>%
+  group_by(measure,year) %>%
+  summarise(total = sum(n.m,na.rm = TRUE)) %>%
+  filter(measure %in% to.keep)
+
+# Does spending more on consumer awareness decrease unclaimed deposits
+ggplot(sum.fdata, aes(year, total, fill = measure)) +
+  geom_bar(stat="identity",position="dodge") +
+  labs(title="Tire Recycling Expenditure and Revenue", x = "Year", y = " Amount ($1,000,000)") +
+  theme(axis.text.x = element_text(angle = 90))
+
+# possible to dig a bit deeper into this
+
+# tire units moved -----------------------------------
+
+udata <- tire_units %>%
+  gather("year", "n",2:length(.)) %>%
+  mutate(n.m = n/1000000)
+
+to.keep <- c("Total Sold", "Total Collected")
+
+# summarise per year
+sum.udata <- udata %>%
+  group_by(measure,year) %>%
+  summarise(total = sum(n.m,na.rm = TRUE)) %>%
+  filter(measure %in% to.keep)
+
+# make a pretty graph
+ggplot(sum.udata, aes(year, total, fill = measure)) +
+  #facet_wrap(~measure) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Recycled Units Returned and Sold",
+       x = "Year", y = "Total no. (millions)") +
+  theme(axis.text.x = element_text(angle = 90))
 
