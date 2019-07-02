@@ -50,6 +50,7 @@ priority <- priority_raw %>%
       dplyr::filter(measure %in%
                   c("Absolute Collection-Units Collected-",
                     "Absolute Collection-Weight Collected (Tonnes)-")) %>%
+
       dplyr::select(-c(organization)) %>%
       mutate(regional_district = gsub("-", " ", regional_district)) %>%
       gather("year", "n",3:length(.)) %>%
