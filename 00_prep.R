@@ -466,7 +466,7 @@ ggplot(sum.fdata, aes(year, total, fill = measure)) +
   labs(title="Tire Recycling Expenditure and Revenue", x = "Year", y = " Amount ($1,000,000)") +
   theme(axis.text.x = element_text(angle = 90))
 
-# possible to dig a bit deeper into this
+### possible to dig a bit deeper into this
 
 # tire units moved -----------------------------------
 
@@ -484,9 +484,20 @@ sum.udata <- udata %>%
 
 # make a pretty graph
 ggplot(sum.udata, aes(year, total, fill = measure)) +
-  #facet_wrap(~measure) +
   geom_bar(stat = "identity", position = "dodge") +
   labs(title = "Recycled Units Returned and Sold",
        x = "Year", y = "Total no. (millions)") +
   theme(axis.text.x = element_text(angle = 90))
 
+sum.udata.l <- sum.udata %>%
+    spread(measure, total) %>%
+    mutate(prop.recovered = `Total Collected`/`Total Sold`)
+
+ggplot(sum.udata.l, aes(x = year, y = prop.recovered))+
+  geom_point() +
+  ylim(0,1) +
+  labs(title="Recycled Units Recovery Rate (%)",
+       x = "Year",
+       y = "Recovery Rate %")
+
+#

@@ -51,7 +51,6 @@ read_bevs_financial <- function(file, range, org) {
     select(organization, everything())
 }
 
-
 read_bevs_units <- function(file, range, org) {
   cols <- ncols_from_range(range)
   read_excel(excel_file, sheet = "Bevs(2000-2017)",
@@ -169,10 +168,44 @@ read_tire_financial <- function(file, range) {
     select(measure, everything())
 }
 
-
 tire_financial <- read_tire_financial(excel_file,"B31:M37")
+
 tire_units <- read_tire_units(excel_file,"B39:M49")
 
+
+# PAINTS _FLAM_PEST ----------------------------------------
+
+read_pfp_financial <- function(file, range) {
+  cols <- ncols_from_range(range)
+  read_excel(excel_file, sheet = "Paints-Flam-Pest(2000-2017)",
+             range = range,
+             col_types = c("text", "text", rep("numeric", cols - 2)),
+             col_names = c("measure","foo",
+                           seq(2000, length.out = cols - 2))) %>%
+    select(measure, everything()) %>%
+    select(-c('foo'))
+}
+
+read_pfp_units <- function(file, range) {
+   cols <- ncols_from_range(range)
+  read_excel(excel_file, sheet = "Paints-Flam-Pest(2000-2017)",
+             range = range,
+             col_types = c("text","text", rep("numeric", cols - 2)),
+             col_names = c("measure", "foo",
+                           seq(2000, length.out = cols - 2))) %>%
+          select(measure, everything()) %>%
+          select(-c('foo'))
+}
+
+
+
+pfp_financial <- read_pfp_financial(excel_file,"B66:U72")
+
+pfp_units <- read_pfp_units(excel_file,"B74:U87")
+
+# Elect ------------------------------------------------
+
+# Lead
 
 
 
@@ -190,7 +223,8 @@ x =   read_excel(excel_file, sheet = "Pharm(2000-2017)",
              range = range,
              col_types = c("text", "text", rep("numeric", cols - 2)),
              col_names = c("measure","regional_district",
-                           seq(2000, length.out = cols - 2)))
+                           seq(2000, length.out = cols - 2))) %>%
+
     )
 }
 
