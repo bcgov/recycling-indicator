@@ -35,8 +35,6 @@ data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to r
 # - BC Pop Stats (ignore and get directly from Stats Can )
 # - Program Financials (2014 - 2017) Lots of holes with who reported and who didnt
 
-
-
 rdKey <- read.csv(paste(data.dir,"/RD_key.csv",sep = ""))
 
 # Still to do
@@ -54,7 +52,6 @@ pop <- priority_raw %>%
 
 
 # extract the raw unit data and add with population and maps ---------
-
 priority <- priority_raw %>%
   dplyr::filter(measure %in%
                   c("Absolute Collection-Units Collected-",
@@ -441,10 +438,10 @@ ggplot(sum.udata, aes(year, total, fill = measure)) +
 
 ## this needs some more work to split out the data types
 
+###############################################################
+# TIRE ---------------------------------------------------
 
-# TIRE ## ---------------------------------------------------
-
-# get oil financial data -------------------------------------
+# get tire financial data -------------------------------------
 
 tire.fdata <-tire_financial %>%
   gather("year", "n", 2:length(.)) %>%
@@ -468,7 +465,8 @@ ggplot(sum.fdata, aes(year, total, fill = measure)) +
 
 ### possible to dig a bit deeper into this
 
-# tire units moved -----------------------------------
+
+# Tire units moved -----------------------------------
 
 udata <- tire_units %>%
   gather("year", "n",2:length(.)) %>%
@@ -500,4 +498,94 @@ ggplot(sum.udata.l, aes(x = year, y = prop.recovered))+
        x = "Year",
        y = "Recovery Rate %")
 
-#
+#########################################################
+# pfp indicator ---------------------------------------
+
+pfp_recovery
+pfp_financial
+pfp_units
+
+# merge in the pop.long form data
+ppdata <- left_join(sum.pdata, pop,
+                    by = c("regional_district","year")) %>%
+  mutate(unit.per.cap = total / pop)
+
+
+
+# extract the raw unit data and add with population and maps....
+pfpdata <- pfp_recovery %>%
+  dplyr::filter(!regional_district == '') %>%
+  gather("year", "n",3:length(.))
+
+## do a basic graph to check it out
+ggplot(pfpdata, aes(year, n, fill = measure)) +
+  geom_bar(stat = "identity",position = "dodge") +
+  labs(title = "Absolute collection per person",
+       x = "Year",
+       y = "Total Tubskids Collected")+
+  theme(axis.text.x = element_text(angle = 90))
+
+# calculate the provincial average
+bc_units_per_cap_yr <- pfpdata %>%  # per yr
+  na.omit() %>%
+  group_by(year, measure) %>%
+  summarise(BCave = mean(n))
+
+bc_units_per_cap <- pfpdata %>%     # all years
+  na.omit() %>%
+  group_by(measure) %>%
+  summarise(BCave = mean(n))
+
+regional_units_per_cap_yr <- pfpdata %>% na.omit() %>%
+  group_by(year, measure, regional_district) %>%
+  summarise(ave = mean(n))
+
+regional_units_per_cap <- pfpdata %>% na.omit() %>%
+  group_by(measure, regional_district) %>%
+  summarise(ave = mean(n))
+
+# join the regional and prov. ave data and calculate the difference
+diff.df <-left_join(regional_units_per_cap,
+                    bc_units_per_cap,
+                    by = c('measure')) %>%
+  mutate(delta = ave - BCave,
+         response = ifelse(delta < 0, "below ave", "above ave"))
+
+# join the regional and prov. ave data and calculate the difference per year
+diff.df.yr <-left_join(regional_units_per_cap_yr,
+                       bc_units_per_cap_yr,
+                       by = c('measure','year')) %>%
+  mutate(delta = ave - BCave,
+         response = ifelse(delta < 0,
+                           "below ave", "above ave"))
+
+# Diverging Barcharts ( all years combined )
+p_dif <- ggplot(diff.df, aes(x = regional_district,
+                             y = delta,label = delta)) +
+  facet_wrap(~measure)+
+  geom_point()+
+  geom_bar(stat = 'identity',
+           aes(fill = response), width =.5)  +
+  scale_fill_manual(name = "Mileage",
+                    labels = c("Above Average", "Below Average"),
+                    values = c("above ave" = "#00ba38",
+                               "below ave" = "#f8766d")) +
+  labs(title = "Regional difference from the average BC
+                              units per capita recycling", y = " Difference from BC Ave") +
+  coord_flip() #+
+p_dif
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
