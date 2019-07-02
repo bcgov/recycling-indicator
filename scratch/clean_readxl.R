@@ -185,14 +185,9 @@ x =   read_excel(excel_file, sheet = "Paints-Flam-Pest(2000-2017)",
                            seq(2000, length.out = cols - 2))) %>%
         mutate(test = str_detect(measure_long,"Population|Per Person")) %>%
         filter(test == "FALSE") %>%
-        mutate(regional_district =  gsub(".*-(.*)", "\\1", measure_long))
-
-      %>%
-      mutate(measure1 =  gsub(".*-(.*)", "\\2", measure_long))
-      #select(measure, everything())
-        x1 <- x %>%
-        filter(str_detect('measure_long', "-"))
-
+        mutate(regional_district =  gsub(".*-(.*)", "\\1", measure_long),
+               measure == 'Absolute Collection- Total Tubskids')
+        select(measure, regional_district, everything())
 
         mutate(measure =  unlist(strsplit(x$measure_long, "\\-" ))[1],
             regional_district <- unlist(strsplit(x$measure_long, "\\-" ))[3])

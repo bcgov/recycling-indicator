@@ -22,34 +22,29 @@ source('00_Functions.R')
 data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to run on O:/
 
 ## DATA INCLUDES
-# - beverage       (drafted)
-# - oil filters    (drafted)
-# - tires           ( regional data doesn't match other regions)
-# - Paints-Flam-Pest
+# - beverage         (drafted)
+# - oil filters      (drafted)
+# - tires            (drafted - regional data doesn't match other regions)
+# - Paints-Flam-Pest (drafted)
 # - Elect
 # - Lead-Acid Batteries         (not much data - drop?)
 # - Pharmacy          (straight-forward)
 # - PPP               (straight-forward)
 #
-# Also some summaries
-# - BC Pop Stats (ignore and get directly from Stats Can )
 # - Program Financials (2014 - 2017) Lots of holes with who reported and who didnt
 
-rdKey <- read.csv(paste(data.dir,"/RD_key.csv",sep = ""))
+# Read in population data
+# BC Pop Stats (ignore and get directly from Stats Can)
+# https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx
+# manual export of population per regional district (2000 - 2018) and store in data folder
 
-# Still to do
-# replace next section by reading in pop data from
-# Can Stats github/ original source
+pop.0 <- read.csv(paste('data','Population_Estimates.csv',sep = "/"),
+                header = TRUE)
+pop <- pop.0 %>%
+       mutate(regional_district = gsub("-", " ", Regional.District),
+              n = Total, year = as.character(Year)) %>%
 
-# extract the population data and export as csv ----------------------
-
-pop <- priority_raw %>%
-          dplyr::filter(measure == 'Population-') %>%
-          dplyr::select(-c(organization,measure)) %>%
-          gather("year", "n", 2:19) %>%
-          mutate(pop = as.numeric(n)) %>%
-          dplyr::select(-c(n))
-
+       select(-c('ï..','Gender','Regional.District','Total',"Year"))
 
 # extract the raw unit data and add with population and maps ---------
 priority <- priority_raw %>%
@@ -57,6 +52,7 @@ priority <- priority_raw %>%
                   c("Absolute Collection-Units Collected-",
                     "Absolute Collection-Weight Collected (Tonnes)-")) %>%
   dplyr::select(-c(organization)) %>%
+  mutate(regional_district = gsub("-", " ", regional_district)) %>%
   gather("year", "n",3:length(.)) %>%
   mutate(n = as.numeric(n))
 
@@ -73,7 +69,7 @@ sum.pdata <- priority %>%
 # merge in the pop.long form data
 ppdata <- left_join(sum.pdata, pop,
                     by = c("regional_district","year")) %>%
-      mutate(unit.per.cap = total / pop)
+      mutate(unit.per.cap = total / n)
 
 # break up into weight and units
 units.per.cap <- ppdata %>%
@@ -87,7 +83,7 @@ ggplot(units.per.cap,aes(year,unit.per.cap)) +
   geom_bar(stat = "identity",position = "dodge") +
   labs(title = "Regional Units Recycled per capita",
            x = "Year", y = "units per capita")
-ggsave(paste('out/',"04_Beverage_UnitsPerCap.png"))
+#ggsave(paste('out/',"04_Beverage_UnitsPerCap.png"))
 
 ## weight per capita
 ggplot(weight.per.cap,aes(year,unit.per.cap)) +
@@ -95,7 +91,7 @@ ggplot(weight.per.cap,aes(year,unit.per.cap)) +
   geom_bar(stat = "identity",position="dodge") +
   labs(title = "Regional weight of recycling (tonnes) per capita",
            x = "Year", y = "weight per cap (tonnes")
-ggsave(paste('out/',"04_Beverage_weightPerCap.png"))
+#ggsave(paste('out/',"04_Beverage_weightPerCap.png"))
 
 # calculate the provincial average
 bc.units.per.cap <- units.per.cap %>%
