@@ -21,6 +21,22 @@ source('00_Functions.R')
 #data.dir <- "data/" # to run on C:
 data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to run on O:/
 
+## DATA INCLUDES
+# - beverage       (drafted)
+# - oil filters    (drafted)
+# - tires
+# - Paints-Flam-Pest
+# - Elect
+# - Lead-Acid Batteries (not much data - drop?)
+# - Pharmacy (straight-forward)
+# - PPP (straight-forward)
+# Also some summaries
+# - BC Pop Stats (ignore and get directly from Stats Can )
+# - Program Financials
+
+
+
+
 rdKey <- read.csv(paste(data.dir,"/RD_key.csv",sep = ""))
 
 # Still to do
