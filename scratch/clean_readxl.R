@@ -70,13 +70,14 @@ read_bevs_recovery_raw <- function(file, range,org) {
   cols <- ncols_from_range(range)
   read_excel(excel_file, sheet = "Bevs(2000-2017)",
              range = range,
+             col_types = c("text", "text", rep("numeric", cols - 2)),
              col_names = c("measure", "regional_district",
                            seq(2000, length.out = cols - 2))) %>%
     filter(measure != "Priority Measures") %>%
     mutate(regional_district = gsub("-", " ", regional_district),
            organization = org,
            type = "bev") %>%
-    select(organization, type, everything())
+    select(organization, type, measure, everything())
 }
 
 #--------------------------------------------------------------
@@ -360,9 +361,8 @@ ppp_financial <- read_ppp_financial(excel_file,"A15:E16")
 
 # combined datasets into three datasets --------------
 
-
 all.finance <- bind_rows(financial, oil_financial, tire_financial,
-                        ppp_finance, pfp_financial)
+                         ppp_financial, pfp_financial)
 
 all.regions <- bind_rows(#priority_raw,
                          recovery_pp, pfp_recovery, elect_compile,
