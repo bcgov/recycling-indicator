@@ -423,7 +423,6 @@ ggplot(sum.udata, aes(year, total, fill = measure)) +
 # TIRE ---------------------------------------------------
 
 # financial data -------------------------------------
-
 tire.fdata <-tire_financial %>%
   gather("year", "n", 2:length(.)) %>%
   mutate(n.m = n/1000000)
@@ -479,6 +478,11 @@ ggplot(sum.udata.l, aes(x = year, y = prop.recovered))+
       ylim(0,1) +
       labs(title="Recycled Units Recovery Rate (%)",
           x = "Year", y = "Recovery Rate %")
+
+## Elect -
+#elect_compile
+
+
 
 #########################################################
 # pfp indicator ---------------------------------------
