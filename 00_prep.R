@@ -15,7 +15,6 @@
 x <- c("dplyr","ggplot2","tidyr","stringr","reshape", "bcmaps", "sf", "envreportutils") #raster","sp","sf","rgdal","xlsx","rJava","tibble","mapview","gtools")
 lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
 
-source('00_Functions.R')
 
 ## Load  data files
 #data.dir <- "data/" # to run on C:
@@ -26,10 +25,10 @@ data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to r
 # - oil filters      (drafted)
 # - tires            (drafted - regional data doesn't match other regions)
 # - Paints-Flam-Pest (drafted)
-# - Elect
+# - Elect             (drafted)
 # - Lead-Acid Batteries         (not much data - drop?)
-# - Pharmacy          (straight-forward)
-# - PPP               (straight-forward)
+# - Pharmacy          (drafted)
+# - PPP               (drafted)
 #
 # - Program Financials (2014 - 2017) Lots of holes with who reported and who didnt
 
@@ -48,8 +47,14 @@ pop <- pop.0 %>%
        select(-c('ï..','Gender','Regional.District','Total',"Year"))
 
 #######################################################################
+
+all.finance
+all.regions
+all.units
+
 # Beverage ------------------------------------------------------
-# extract the raw unit data
+
+
 priority <- priority_raw %>%
       dplyr::filter(measure %in%
                   c("Absolute Collection-Units Collected-",
