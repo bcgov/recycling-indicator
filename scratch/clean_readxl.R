@@ -193,8 +193,6 @@ read_pfp_recovery <- function(file, range) {
 
 }
 
-pfp_recovery <- read_pfp_recovery(excel_file,"B98:U187")
-
 read_pfp_financial <- function(file, range) {
   cols <- ncols_from_range(range)
   read_excel(excel_file, sheet = "Paints-Flam-Pest(2000-2017)",

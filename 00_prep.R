@@ -41,6 +41,7 @@ data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to r
 
 pop.0 <- read.csv(paste('data','Population_Estimates.csv',sep = "/"),
                 header = TRUE)
+
 pop <- pop.0 %>%
        mutate(regional_district = gsub("-", " ", Regional.District),
               n = Total, year = as.character(Year)) %>%
@@ -449,7 +450,6 @@ ggplot(sum.fdata, aes(year, total, fill = measure)) +
 
 
 # Tire units moved -----------------------------------
-
 udata <- tire_units %>%
       gather("year", "n",2:length(.)) %>%
       mutate(n.m = n/1000000)
@@ -554,14 +554,74 @@ p_dif <- ggplot(diff.df, aes(x = regional_district,
       labs(title = "Regional difference from the average BC
                               units per capita recycling", y = " Difference from BC Ave") +
       coord_flip() #+
-p_dif
 
+p_dif
 
 
 # pfp financial -------------------------------
 
-# pfp units ---------------------------
 
+pfp.fdata <-pfp_financial %>%
+      gather("year", "n", 2:length(.)) %>%
+      mutate(n.m = n/1000000)
+
+to.keep <- c("Expenditure-Total","Revenue-Total",
+             "Expenditure-Education and Printed Materials",
+             "Balance")
+
+sum.fdata <- pfp.fdata %>%
+      group_by(measure, year) %>%
+      summarise(total = sum(n.m, na.rm = TRUE)) %>%
+      filter(measure %in% to.keep)
+
+# Does spending more on consumer awareness decrease unclaimed deposits
+ggplot(sum.fdata, aes(year, total, fill = measure)) +
+      geom_bar(stat="identity",position="dodge") +
+      labs(title="PFP Recycling Expenditure and Revenue",
+          x = "Year",
+          y = " Amount ($1,000,000)") +
+      theme(axis.text.x = element_text(angle = 90))
+
+### possible to dig a bit deeper into this
+ggplot(sum.fdata, aes(year, total)) +
+      facet_wrap(~measure)+
+      geom_bar(stat="identity",position="dodge") +
+      labs(title="PFP Recycling Expenditure and Revenue",
+       x = "Year",
+       y = " Amount ($1,000,000)") +
+      theme(axis.text.x = element_text(angle = 90))
+
+# expenditure is very very low and not worth reporting.
+#head(sum.fdata)
+sum.fdata %>% filter(measure == "Expenditure-Education and Printed Materials")
+
+
+# pfp units ---------------------------
+udata <- pfp_units %>%
+      gather("year", "n",2:length(.)) %>%
+      mutate(n.m = n/1000000)
+
+unique(udata$measure)
+
+# summarise per year
+sum.udata <- udata %>%
+      group_by(measure,year) %>%
+      summarise(total = sum(n.m,na.rm = TRUE)) %>%
+      filter(!(measure == "All HHW Collected (Litres)"))
+
+
+# make a pretty graph
+ggplot(sum.udata, aes(year, total, fill = measure)) +
+      geom_bar(stat = "identity", position = "dodge") +
+      labs(title = "Recycled Units Returned and Sold",
+          x = "Year",
+          y = "Total no. (millions)") +
+      theme(axis.text.x = element_text(angle = 90),
+            legend.position = 'none')
+
+# split into different metrics (paint / aersol/ non aersol)
+
+## More digging required.
 
 
 
