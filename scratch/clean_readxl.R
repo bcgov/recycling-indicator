@@ -186,9 +186,9 @@ read_pfp_recovery <- function(file, range) {
         mutate(test = str_detect(measure_long,"Population|Per Person")) %>%
         filter(test == "FALSE") %>%
         mutate(regional_district =  gsub(".*-(.*)", "\\1", measure_long),
-        measure = 'Absolute Collection- Total Tubskids') %>%
-        select(measure, regional_district, everything()) %>%
-        select(-c('foo',"measure_long","test")) %>%
+              measure = 'Absolute Collection- Total Tubskids') %>%
+        select(measure, regional_district, everything())  %>%
+        select(-c('foo',"measure_long","test"))           %>%
         select(measure, regional_district, everything())
 
 }
