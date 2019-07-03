@@ -224,34 +224,41 @@ pfp_units <- read_pfp_units(excel_file,"B74:U87")
 
 # Elect ------------------------------------------------
 
+# COMPLEX STILL TO DO:
 
 
-
-
-# Lead
-
-
-
-
-
-
-# Functions to get pharm data from xlxs.--------------------------------
-
-range = "B81:U164"
-file = excel_file
-
-# read_pharm_recovery <- function(file, range) {
+# Pharm ------------------------------------------------
+read_pharm_recovery <- function(file, range) {
   cols <- ncols_from_range(range)
-x =   read_excel(excel_file, sheet = "Pharm(2000-2017)",
+  read_excel(excel_file, sheet = "Pharm(2000-2017)",
              range = range,
              col_types = c("text", "text", rep("numeric", cols - 2)),
-             col_names = c("measure","regional_district",
+             col_names = c("measure", "regional_district",
                            seq(2000, length.out = cols - 2))) %>%
+        mutate(test = str_detect(measure, "Population")) %>%
+        filter(test == "FALSE") %>%
+        mutate(regional_district = gsub("-", " ", regional_district)) %>%
+        select(measure, regional_district, everything())  %>%
+        select(-c ("test"))
 
-    )
 }
 
+# pharm units
+read_pharm_units <- function(file, range) {
+  cols <- ncols_from_range(range)
+  read_excel(excel_file, sheet = "Pharm(2000-2017)",
+             range = range,
+             col_types = c("text", "text", rep("numeric", cols - 2)),
+             col_names = c("measure", "foo",
+                    seq(2000, length.out = cols - 2))) %>%
+    select(measure, everything()) %>%
+    select(-c('foo'))
+}
 
+pharm_recovery <- read_pharm_recovery(excel_file,"B81:U164")
 
-range = "B80:U164"
-file = excel_file
+# very limited financials
+
+pharm_units <- read_pharm_units(excel_file,"B50:U51")
+
+# Lead ---------------------------------------------

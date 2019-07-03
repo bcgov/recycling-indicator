@@ -623,8 +623,108 @@ ggplot(sum.udata, aes(year, total, fill = measure)) +
 
 ## More digging required.
 
+# Pharm ---------------------------------------------------
+# extract the raw unit data and add with population and maps....
+ph_data <- pharm_recovery %>%
+      dplyr::filter(!regional_district == '') %>%
+      gather("year", "total",3:length(.))
+
+# break up into weight and units
+# note units only have data from 2008 - 2012
+units.per.cap <- ph_data %>%
+      filter(measure == 'Absolute Collection-Number of Containers-' )
+weight.per.cap <-  ph_data %>%
+      filter(measure == 'Absolute Collection-Weight Collected (kg)-' )
+
+## Units per capita
+ggplot(units.per.cap,aes(year,total)) +
+      #facet_wrap(~ regional_district) +
+      geom_bar(stat = "identity",position = "dodge") +
+      labs(title = "Regional Units Recycled per capita",
+            x = "Year", y = "units per capita")
+
+## weight per capita # raw data are not very informative as metro Van. is much larger
+ggplot(weight.per.cap,aes(year,total)) +
+      facet_wrap(~ regional_district) +
+      geom_bar(stat = "identity",position="dodge") +
+      labs(title = "Regional weight of recycling (tonnes) per capita",
+            x = "Year", y = "weight per cap (tonnes")
+
+# Add population data set and
+
+ph_data <- left_join(weight.per.cap, pop,
+                     by = c("regional_district","year")) %>%
+            mutate(weight.per.cap = total / n)
+
+# calculate the provincial average
+bc.weight.per.cap <- ph_data %>%
+        na.omit() %>%
+        group_by(year) %>%
+        summarise(bc_ave = mean(weight.per.cap))
+
+regional.weight.per.cap <- ph_data %>%
+        na.omit() %>%
+        group_by(year,regional_district) %>%
+        summarise(ave = mean(weight.per.cap))
+
+# join the regional and prov. ave data and calculate the difference
+diff_df <- regional.units.per.cap %>%
+      left_join(.,bc.weight.per.cap, by = 'year') %>%
+      mutate(delta = ave-bc_ave) %>%
+      mutate(response = ifelse(delta < 0,"below", "above")) %>%
+      mutate(response = ifelse(delta == 0,"No data",response))
+
+# Diverging barcharts
+ggplot(diff_df, aes(x = regional_district,
+                    y = delta,
+                    label= delta)) +
+      facet_wrap(~year) +
+      geom_bar(stat='identity', aes(fill=response), width=.5)  +
+      scale_fill_manual(name="Mileage",
+                    labels = c("Above Average", "Below Average", "No Data"),
+                    values = c("above"="#00ba38", "below"="#f8766d", "no data" = 'grey')) +
+      labs(title= "Difference from BC average BC") +
+      coord_flip()
+
+# Diverging Barcharts (all years)
+ggplot(diff_df, aes(x = regional_district,
+                    y = delta,
+                    label = delta)) +
+      geom_bar(stat = 'identity', aes(fill = response), width = .5)  +
+      scale_fill_manual(name = "Mileage",
+                    labels = c("Above Average",
+                               "Below Average",
+                               "No data"),
+                    values = c("above" = "#00ba38",
+                               "below" = "#f8766d",
+                               "no data" = 'grey')) +
+  labs(title = "Regional difference from the average BC units per capita recycling") +
+  coord_flip()
 
 
+
+
+
+# pharm units moved -----------------------------------
+udata <- pharm_units %>%
+  gather("year", "n",2:length(.)) %>%
+  mutate(n.t = n/1000)
+
+to.keep = "Absolute Collection-Weight of Unused/Expired Medications Returned (kg)"
+
+# summarise per year
+sum.udata <- udata %>%
+  group_by(measure,year) %>%
+  summarise(total = sum(n.t,na.rm = TRUE)) %>%
+  filter(measure %in% to.keep)
+
+# make a pretty graph
+ggplot(sum.udata, aes(year, total, fill = measure)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Weight of unused/expired medication returned",
+       x = "Year", y = "Total weight (1000's kgs)") +
+  theme(legend.position = "none",
+            axis.text.x = element_text(angle = 90))
 
 
 
