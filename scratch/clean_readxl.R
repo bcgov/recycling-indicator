@@ -29,17 +29,17 @@ ncols_from_range <- function(range) {
 
 # Beverage functions and data extract -------------------------
 
-read_bevs_recovery <- function(file, range, org) {
-  read_excel(excel_file, sheet = "Bevs(2000-2017)",
-             range = range, col_names = TRUE) %>%
-    #rename_at(1:2, ~ c("measure", "regional_district")) %>%
-    rename_by_pos(1,"measure") %>%
-    rename_by_pos(2,"regional_district") %>%
-    filter(measure != "Priority Measures") %>%
-    mutate(organization = org) %>%
-    select(organization, everything())
-}
-
+#read_bevs_recovery <- function(file, range, org) {
+#  read_excel(excel_file, sheet = "Bevs(2000-2017)",
+#             range = range, col_names = TRUE) %>%
+#    #rename_at(1:2, ~ c("measure", "regional_district")) %>%
+#    rename_by_pos(1,"measure") %>%
+#    rename_by_pos(2,"regional_district") %>%
+#    filter(measure != "Priority Measures") %>%
+#    mutate(organization = org,
+#           type = "bev") %>%
+#    select(organization, type, everything())
+#}
 
 read_bevs_financial <- function(file, range, org) {
   cols <- ncols_from_range(range)
@@ -48,8 +48,10 @@ read_bevs_financial <- function(file, range, org) {
              col_types = c("text", "skip", rep("numeric", cols - 2)),
              col_names = c("measure", "foo",
                            seq(2000, length.out = cols - 2))) %>%
-    mutate(organization = org) %>%
-    select(organization, everything())
+    mutate(organization = org,
+           type = "bev") %>%
+    select(organization, type, everything())
+
 }
 
 read_bevs_units <- function(file, range, org) {
@@ -59,8 +61,9 @@ read_bevs_units <- function(file, range, org) {
              col_types = c("text", "skip", rep("numeric", cols - 2)),
              col_names = c("measure", "foo",
                            seq(2000, length.out = cols - 2))) %>%
-    mutate(organization = org) %>%
-    select(organization, everything())
+    mutate(organization = org,
+          type = "bev") %>%
+    select(organization, type, everything())
 }
 
 read_bevs_recovery_raw <- function(file, range,org) {
@@ -70,15 +73,17 @@ read_bevs_recovery_raw <- function(file, range,org) {
              col_names = c("measure", "regional_district",
                            seq(2000, length.out = cols - 2))) %>%
     filter(measure != "Priority Measures") %>%
-    mutate(organization = org) %>%
-    select(organization, everything())
+    mutate(regional_district = gsub("-", " ", regional_district),
+           organization = org,
+           type = "bev") %>%
+    select(organization, type, everything())
 }
 
 #--------------------------------------------------------------
 # extract Bev data
 
-encorp_priority <- read_bevs_recovery(excel_file, "B5:U38", "Encorp Pacific")
-bc_brewers_priority <- read_bevs_recovery(excel_file, range = "B138:U170", "BC Brewers")
+#encorp_priority <- read_bevs_recovery(excel_file, "B5:U38", "Encorp Pacific")
+#bc_brewers_priority <- read_bevs_recovery(excel_file, range = "B138:U170", "BC Brewers")
 
 encorp_financial <- read_bevs_financial(excel_file, "B45:U53", "Encorp Pacific")
 bc_brewers_financial <- read_bevs_financial(excel_file, "B185:U193", "BC Brewers")
@@ -92,8 +97,11 @@ bc_brewers_priority_raw <- read_bevs_recovery_raw(excel_file, "B209:U293", "BC B
 
 # combine data sets into single file per metric (financial/units/priority)
 financial <- rbind(encorp_financial, bc_brewers_financial)
+
 units <- rbind(encorp_units, bc_brewers_units)
+
 priority_raw <- rbind(encorp_priority_raw, bc_brewers_priority_raw )
+
 
 # Functions to get Oil data from xlxs.--------------------------------
 
@@ -104,8 +112,11 @@ read_excel(excel_file, sheet = "Oil(2003-2017) ",
                col_types = c("text", rep("numeric", cols - 1)),
                col_names = c("regional_district",
                    seq(2003, length.out = cols - 1))) %>%
-          mutate(measure = type) %>%
-          select(measure, everything()
+          mutate(measure = type,
+                 regional_district = gsub("-", " ", regional_district),
+                 organization = NA,
+                 type = "oil") %>%
+          select(organization,type,measure, everything()
   )
 }
 
@@ -116,9 +127,10 @@ read_oil_financial <- function(file, range) {
              col_types = c("text", rep("numeric", cols - 1)),
              col_names = c("measure",
                            seq(2003, length.out = cols - 1))) %>%
-    select(measure, everything())
+    mutate(type = "oil",
+           organization = NA) %>%
+    select(organization,type,measure, everything())
 }
-
 
 read_oil_units <- function(file, range, org) {
   cols <- ncols_from_range(range)
@@ -127,10 +139,10 @@ read_excel(excel_file, sheet = "Oil(2003-2017) ",
              col_types = c("text", rep("numeric", cols - 1)),
              col_names = c("measure",
                 seq(2003, length.out = cols - 1))) %>%
-        select(measure, everything())
+        mutate(type = "oil",
+               organization = NA) %>%
+        select(organization,type,measure, everything())
 }
-
-# Extract oil data -------------------------------
 
 oil_recovery <- read_oil_recovery(excel_file, "B12:Q40","oil_lt_pp")
 filter_recovery <- read_oil_recovery(excel_file, "B42:Q70","filters_kg_pp")
@@ -146,6 +158,7 @@ oil_financial <- read_oil_financial(excel_file, "B147:Q152")
 
 oil_units <- read_oil_units(excel_file, "B154:Q163")
 
+
 # TIRE INDICATOR ------------------------------------------------------
 
 read_tire_units <- function(file, range) {
@@ -154,8 +167,10 @@ read_tire_units <- function(file, range) {
                range = range,
                col_types = c("text", rep("numeric", cols - 1)),
                col_names = c("measure",
-                             seq(2007, length.out = cols - 1)))
-
+                             seq(2007, length.out = cols - 1))) %>%
+      mutate(type = "tire",
+             organization = NA) %>%
+      select(organization,type,measure, everything())
 }
 
 read_tire_financial <- function(file, range) {
@@ -165,13 +180,16 @@ read_tire_financial <- function(file, range) {
              col_types = c("text", rep("numeric", cols - 1)),
              col_names = c("measure",
                            seq(2007, length.out = cols - 1))) %>%
-    select(measure, everything())
+    mutate(type = "tire",
+           organization = NA) %>%
+    select(organization,type,measure, everything())
 }
 
 
 tire_financial <- read_tire_financial(excel_file,"B31:M37")
 
 tire_units <- read_tire_units(excel_file,"B39:M49")
+
 
 
 # PAINTS _FLAM_PEST ----------------------------------------
@@ -186,10 +204,11 @@ read_pfp_recovery <- function(file, range) {
         mutate(test = str_detect(measure_long,"Population|Per Person")) %>%
         filter(test == "FALSE") %>%
         mutate(regional_district =  gsub(".*-(.*)", "\\1", measure_long),
-              measure = 'Absolute Collection- Total Tubskids') %>%
-        select(measure, regional_district, everything())  %>%
-        select(-c('foo',"measure_long","test"))           %>%
-        select(measure, regional_district, everything())
+              measure = 'Absolute Collection- Total Tubskids',
+              type = 'pfp',
+              organization = NA) %>%
+        select(-c('foo',"measure_long","test")) %>%
+        select(organization, type, measure, regional_district, everything())
 
 }
 
@@ -200,7 +219,9 @@ read_pfp_financial <- function(file, range) {
              col_types = c("text", "text", rep("numeric", cols - 2)),
              col_names = c("measure","foo",
                            seq(2000, length.out = cols - 2))) %>%
-    select(measure, everything()) %>%
+    mutate(type = "pfp",
+           organization = NA) %>%
+    select(organization, type, measure, everything()) %>%
     select(-c('foo'))
 }
 
@@ -211,7 +232,9 @@ read_pfp_units <- function(file, range) {
              col_types = c("text","text", rep("numeric", cols - 2)),
              col_names = c("measure", "foo",
                            seq(2000, length.out = cols - 2))) %>%
-          select(measure, everything()) %>%
+          mutate(type = "pfp",
+                 organization = NA) %>%
+          select(organization, type, measure, everything()) %>%
           select(-c('foo'))
 }
 
@@ -224,10 +247,50 @@ pfp_units <- read_pfp_units(excel_file,"B74:U87")
 
 # Elect ------------------------------------------------
 
-# COMPLEX STILL TO DO:
+# this is compiled data for different types of collections
+# (potentially not informative)
 
+#read_elect_recovery <- function(file, range) {
+#  cols <- ncols_from_range(range)
+#  read_excel(excel_file, sheet = "Elect(2007-2017)",
+#                range = range, col_names = TRUE) %>%
+#          select(c('Regional District',
+#                grep("Recovery Rate or Capture  Rate", names(.)))) %>%
+#          rename_at(2:5, ~  seq(2014, length.out = 4)) %>%
+#          mutate(regional_district = gsub("-", " ", `Regional District`),
+#                 measure = 'Recovery Rate or Capture  Rate',
+#                 organization = 'EPRA') %>%
+#          select(organization, type, measure, everything()) %>%
+#          select(-("Regional District"))
+#}
+
+#elect_recovery_combo <- read_elect_recovery(excel_file,"B57:M87")
+
+read_elect_region <- function(file, range, type) {
+  cols <- ncols_from_range(range)
+  read_excel(excel_file, sheet = "Elect(2007-2017)",
+                 range = range,
+                 col_types = c("text", "text", rep("numeric", cols - 2)),
+                 col_names = c("measure", "regional_district",
+                               seq(2007, length.out = cols - 2))) %>%
+    mutate(regional_district = gsub("-", " ", regional_district),
+           organization = type,
+           type = "elect") %>%
+    select(organization, type, measure, everything())
+}
+
+elect_CESA <- read_elect_region (excel_file,"B142:N169","CESA")
+elect_smoke <- read_elect_region (excel_file,"B223:N250","Smoke_CO")
+elect_lamp <- read_elect_region (excel_file,"B304:N332","Lamp_Lighting")
+elect_thermo <- read_elect_region (excel_file,"B347:N430","Thermo")
+elect_call2cell <- read_elect_region (excel_file,"B483:N510","Call2Cell")
+elect_mmr <- read_elect_region (excel_file,"B664:N691","MMR")
+
+elect_compile <- rbind(elect_CESA, elect_smoke, elect_thermo,
+                       elect_lamp, elect_call2cell, elect_mmr)
 
 # Pharm ------------------------------------------------
+
 read_pharm_recovery <- function(file, range) {
   cols <- ncols_from_range(range)
   read_excel(excel_file, sheet = "Pharm(2000-2017)",
@@ -237,13 +300,16 @@ read_pharm_recovery <- function(file, range) {
                            seq(2000, length.out = cols - 2))) %>%
         mutate(test = str_detect(measure, "Population")) %>%
         filter(test == "FALSE") %>%
-        mutate(regional_district = gsub("-", " ", regional_district)) %>%
-        select(measure, regional_district, everything())  %>%
+        mutate(regional_district = gsub("-", " ", regional_district),
+               type = "pharm",
+               organization = NA) %>%
+        select(organization, type, measure, regional_district, everything())  %>%
         select(-c ("test"))
 
 }
 
 # pharm units
+
 read_pharm_units <- function(file, range) {
   cols <- ncols_from_range(range)
   read_excel(excel_file, sheet = "Pharm(2000-2017)",
@@ -251,13 +317,14 @@ read_pharm_units <- function(file, range) {
              col_types = c("text", "text", rep("numeric", cols - 2)),
              col_names = c("measure", "foo",
                     seq(2000, length.out = cols - 2))) %>%
-    select(measure, everything()) %>%
+    mutate(type = "pharm",
+           organization = NA )%>%
+    select(organization, type, measure,everything()) %>%
     select(-c('foo'))
 }
 
 pharm_recovery <- read_pharm_recovery(excel_file,"B81:U164")
 
-# very limited financials
 pharm_units <- read_pharm_units(excel_file,"B50:U51")
 
 # PPP ----------------------------------------------
@@ -270,23 +337,38 @@ read_ppp_recovery <- function(file, range) {
              col_names = c("regional_district",
                            seq(2014, length.out = cols - 1))) %>%
     mutate(regional_district = gsub("-", " ", regional_district),
-           measure = "tonnes of ppp") %>%
-    select(measure, regional_district, everything())
+           measure = "tonnes of ppp",
+           type = "ppp") %>%
+    select(type, measure, regional_district, everything())
 }
 
-ppp_recovery <- read_ppp_recovery(excel_file,"A20:E48")
-
 read_ppp_financial <- function(file, range) {
-  #range = "A15:E16"
   cols <- ncols_from_range(range)
   read_excel(excel_file, sheet = "PPP(2014-2017)",
              range = range,
              col_types = c("text", rep("numeric", cols - 1)),
              col_names = c("measure",
                            seq(2014, length.out = cols - 1))) %>%
-    select(measure, everything())
+    mutate(type = "ppp") %>%
+    select(measure, type, everything())
 }
 
 ppp_recovery <- read_ppp_recovery(excel_file,"A20:E48")
 
-ppp_finance <- read_ppp_financial(excel_file,"A15:E16")
+ppp_financial <- read_ppp_financial(excel_file,"A15:E16")
+
+
+# combined datasets into three datasets --------------
+
+
+all.finance <- bind_rows(financial, oil_financial, tire_financial,
+                        ppp_finance, pfp_financial)
+
+all.regions <- bind_rows(#priority_raw,
+                         recovery_pp, pfp_recovery, elect_compile,
+                         ppp_recovery, pharm_recovery)
+## to fix : priority_raw,# need to remove text from priority_pp
+
+all.units <- bind_rows(units, oil_units, tire_units, pfp_units,
+                       pharm_units)
+
