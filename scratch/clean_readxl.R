@@ -258,7 +258,35 @@ read_pharm_units <- function(file, range) {
 pharm_recovery <- read_pharm_recovery(excel_file,"B81:U164")
 
 # very limited financials
-
 pharm_units <- read_pharm_units(excel_file,"B50:U51")
 
-# Lead ---------------------------------------------
+# PPP ----------------------------------------------
+
+read_ppp_recovery <- function(file, range) {
+  cols <- ncols_from_range(range)
+  read_excel(excel_file, sheet = "PPP(2014-2017)",
+             range = range,
+             col_types = c("text", rep("numeric", cols - 1)),
+             col_names = c("regional_district",
+                           seq(2014, length.out = cols - 1))) %>%
+    mutate(regional_district = gsub("-", " ", regional_district),
+           measure = "tonnes of ppp") %>%
+    select(measure, regional_district, everything())
+}
+
+ppp_recovery <- read_ppp_recovery(excel_file,"A20:E48")
+
+read_ppp_financial <- function(file, range) {
+  #range = "A15:E16"
+  cols <- ncols_from_range(range)
+  read_excel(excel_file, sheet = "PPP(2014-2017)",
+             range = range,
+             col_types = c("text", rep("numeric", cols - 1)),
+             col_names = c("measure",
+                           seq(2014, length.out = cols - 1))) %>%
+    select(measure, everything())
+}
+
+ppp_recovery <- read_ppp_recovery(excel_file,"A20:E48")
+
+ppp_finance <- read_ppp_financial(excel_file,"A15:E16")
