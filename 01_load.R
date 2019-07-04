@@ -15,23 +15,9 @@
 x <- c("dplyr","ggplot2","tidyr","stringr","reshape", "bcmaps", "sf", "envreportutils") #raster","sp","sf","rgdal","xlsx","rJava","tibble","mapview","gtools")
 lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
 
-
 ## Load  data files
-#data.dir <- "data/" # to run on C:
+
 data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to run on O:/
-
-## DATA INCLUDES
-# - beverage         (drafted)
-# - oil filters      (drafted)
-# - tires            (drafted - regional data doesn't match other regions)
-# - Paints-Flam-Pest (drafted)
-# - Elect             (drafted)
-# - Lead-Acid Batteries         (not much data - drop?)
-# - Pharmacy          (drafted)
-# - PPP               (drafted)
-#
-# - Program Financials (2014 - 2017) Lots of holes with who reported and who didnt
-
 
 # Read in population data -------------------------------
 # BC Pop Stats (ignore and get directly from Stats Can)
