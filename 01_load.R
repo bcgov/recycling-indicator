@@ -33,15 +33,18 @@ pop <- pop.0 %>%
               n = Total, year = as.character(Year)) %>%
        select(-c('ï..','Gender','Regional.District','Total',"Year"))
 
+# STILL TO DO : check we have regional pop data ie Northern Rockies?
+
+
 #######################################################################
 
 source(paste('scratch','clean_readxl.R',sep = '/'))
 
 ##or
+
 #all.finance <- read.csv(paste('data','all.finance.csv',sep = "/"), header = TRUE)
 #all.regions <- read.csv(paste('data','all.regions.csv',sep = "/"), header = TRUE)
 #all.units <- read.csv(paste('data','all.units.csv',sep = "/"), header = TRUE)
-
 
 
 # Beverage ------------------------------------------------------
@@ -236,21 +239,20 @@ to.keep = c("Balance (Including Deposits Charged/Returned)",
             "Expenditure-Consumer Awareness")
 
 fdata <-finance %>%
-  select(-c("organization","type"))%>%
-  group_by(measure) %>%
-  summarise_all(., sum, na.rm = TRUE) %>%
-  gather("year", "n", 2:length(.)) %>%
-  mutate(n.m = n/1000000) %>%
-  group_by(measure, year) %>%
-  summarise(total = sum(n.m,na.rm = TRUE)) %>%
-  filter(measure %in% to.keep)
+      select(-c("organization","type"))%>%
+      group_by(measure) %>%
+      summarise_all(., sum, na.rm = TRUE) %>%
+      gather("year", "n", 2:length(.)) %>%
+      mutate(n.m = n/1000000) %>%
+      group_by(measure, year) %>%
+      summarise(total = sum(n.m,na.rm = TRUE)) %>%
+      filter(measure %in% to.keep)
 
 ggplot(fdata, aes(year, total, fill = measure)) +
-  geom_bar(stat="identity",position="dodge") +
-  labs(title="Unclaimed deposits and consumer-expenditure",
-       x = "Year", y = " Amount ($1,000,000)") +
-  theme(axis.text.x = element_text(angle = 90))
-
+      geom_bar(stat="identity",position="dodge") +
+      labs(title="Unclaimed deposits and consumer-expenditure",
+           x = "Year", y = " Amount ($1,000,000)") +
+      theme(axis.text.x = element_text(angle = 90))
 
 # Grab the unit data -------------------------------
 
@@ -294,10 +296,16 @@ ggplot(sum.udata1, aes(x = year, y = RecoveryRate))+
 
 
 ###################################################################################################
+
 ## OIL Lubraicant and Filters ------------------------------
+
+
+regions <- all.regions %>% filter(type == 'oil')
+
 # extract the raw unit data
 
-pdata <- recovery_pp %>%
+pdata <- regions %>%
+  filter()
   dplyr::filter(!regional_district == '') %>%
   gather("year", "n",3:length(.))
 

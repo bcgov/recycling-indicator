@@ -36,6 +36,8 @@ There are seven sets of data assessed for this indicator;
 
 This data was combined with BC population data to calculate per person values per region. BC population data was manualy extracted per regional district for 2000 - 2018 using the BC Stats tool:  <https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx>
 
+Note - May need to add Northern Rockies regional data as currently not pulled in as part of original query
+
 Broadly, each of the above indicators has data on 1) quantity of items (kgs/litres) per regional district, 2) financial and 3) units moved. Finanial and unit data is compiled at the provincial scale (aspatial).  
 
 Not all indicators had available data on these three catergories and collection years vary per indicator. 
@@ -238,7 +240,7 @@ ggplot(fdata, aes(year, total, fill = measure)) +
 
 There is not a strong correlation between with awareness, may need to adjust this per unit? or check if the awareness expenditure is for multiple programs (ECPOR and BCRCCC). Perhaps a comparison of revenue vs expenditure on education programs should be looked at? 
 
-```{r, echo = TRUE, include = FALSE}
+```{r, echo = FALSE, include = TRUE}
 # look at revenue vs education $$
 to.keep = c("Balance (Including Deposits Charged/Returned)",
             "Expenditure-Consumer Awareness") 
@@ -259,9 +261,8 @@ ggplot(fdata, aes(year, total, fill = measure)) +
        x = "Year", y = " Amount ($1,000,000)") +
   theme(axis.text.x = element_text(angle = 90))
 
-
 ```
-??
+?? not sure what is going on here? 
 
 #### Units Moved
 Is there a difference in the units moved (recovered or sold over time?)
@@ -308,19 +309,15 @@ ggplot(sum.udata1, aes(x = year, y = RecoveryRate))+
 ```
 
 
- 
-
-
-
 Thoughts on Beverage recycling:
 
-- Map regional data sets for presentation (leaflet)
+- Would be nice to add a regional map with data (leaflet - etc)
 - difference maps better than raw values ? Difference to average works with change per year indicated 
 - could present some metrics within graphs (ie non - spatial data sets) 
 - Northern Rockies missing population data - need to pull data from stats Canada per year 
 
 
-# Lubricating Oil, Filters and containers. 
+# 2) Lubricating Oil, Filters and containers. 
 
 Collection broken in regional and temporal data sets from 2010 to 2017 including: 
 
@@ -330,30 +327,44 @@ Collection broken in regional and temporal data sets from 2010 to 2017 including
 - Antifreeze (kg person)
 
 Data exploration points to consider: 
+
 Temporal and a-spatial data sets include financial, collection sites, units moved, and end fate for products. 
 Collection sites does not look like much change in trends over time?
 Could be opportunity to combine a number of measure (ie beverage together). Comox and Strathcona are treated separately in this analysis. 
 
-Could also combine the % recover rate over time for different metrics in a single graph 
+```{r, include = TRUE, echo = FALSE}
+regions <- all.regions %>% filter(type == 'oil')
 
-## Compare regional datasets for priority measures. 
-Note these are already calculated per person (assuming the pop data is correct)
+pdata <- regions %>%
+      select(-c(organization, type)) %>%
+      filter(!regional_district == '') %>%
+      gather("year", "n",3:length(.)) %>%
+      filter(year >2009)
 
-
-
-
+## do a basic graph to check it out
+ggplot(pdata, aes(year, n, fill = measure)) +
+  geom_bar(stat = "identity",position = "dodge") +
+  labs(title = "Absolute collection (kg/litres) per person", 
+       x = "Year", 
+       y = "Collection (kg) per person")
+```
 Used oil is a magnitude difference in volume. Repeat graph with out used oil values: 
 
+```{r,include = TRUE, echo = FALSE}
+# used oil is order of magnitude more!
+pdata.1 <- pdata %>% dplyr::filter(!measure == 'oil_lt_pp')
+pdata.1<- pdata.1[complete.cases(pdata.1), ]
 
+## do a basic graph to check it out
+ggplot(pdata.1,aes(year, n, fill = measure)) +
+  geom_bar(stat="identity",position="dodge") +
+  labs(title="Absolute collection (kg) per person", 
+       x = "Year", 
+       y = "Collection (kg) per person")
 
+```
 
-
-
-# TO DO STILL : 
-
-## Explore the non spatial data (all regions combined): Financial, units moved and other
-1) Financial 
-
+This may be due to a number of data values being high / errors 
 
 
 
