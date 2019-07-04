@@ -366,6 +366,14 @@ all.finance <- bind_rows(financial, oil_financial, tire_financial,
 all.regions <- bind_rows(priority_raw, recovery_pp, pfp_recovery,
                          elect_compile, ppp_recovery, pharm_recovery)
 
+## still to fix this bit
+r.to.fix <- c("Comox", "Strathcona","Skeena-Queen Charlotte","Powell River")
+
+SC.data <- all.regions %>%
+      filter(regional_district %in% r.to.fix)
+
+
+
 all.units <- bind_rows(units, oil_units, tire_units, pfp_units,
                        pharm_units)
 

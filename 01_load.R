@@ -48,11 +48,15 @@ source(paste('scratch','clean_readxl.R',sep = '/'))
 
 regions <- all.regions %>% filter(type == 'bev')
 
+# still need to fix comox / strathcona in all.regions
+
 priority <- regions %>%
       dplyr::filter(measure %in%
                   c("Absolute Collection-Units Collected-",
                     "Absolute Collection-Weight Collected (Tonnes)-")) %>%
       select(-c(organization,type)) %>%
+      group_by(measure, regional_district) %>%
+      summarise_all(., sum, na.rm = TRUE) %>%
       gather("year", "n",3:length(.)) %>%
       left_join(.,pop, by = c("regional_district","year")) %>%
       dplyr::rename(.,'pop' = 'n.y') %>%
@@ -66,15 +70,9 @@ units.per.cap <- priority %>%
 weight.per.cap <-  priority %>%
       filter(measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
 
-# error check notes
-
-# 1) Comox/ Comox - Stathcona and Queen Charlotte have missing data
-#   - still need to be resolved
-#
-# 2) some anomolied in Central Coast and Central Kootneys
+# Data Anommolies
+# 1) some anomolied in Central Coast and Central Kootneys
 #     2015 - checked the original data and true is same as pdf report
-
-
 
 ## Units per capita
 ggplot(units.per.cap, aes(year,n.pop)) +
@@ -96,19 +94,20 @@ ggplot(weight.per.cap,aes(year,n.pop)) +
 bc.units.per.cap <- units.per.cap %>%
       na.omit() %>%
       group_by(year) %>%
-      summarise(bc_ave = mean(unit.per.cap))
+      summarise(bc_ave = mean(n.pop))
 
 regional.units.per.cap <- units.per.cap %>%
       na.omit() %>%
       group_by(year,regional_district) %>%
-      summarise(ave = mean(unit.per.cap))
+      summarise(ave = mean(n.pop))
 
 # join the regional and prov. ave data and calculate the difference
 diff.df <- regional.units.per.cap %>%
-      left_join(.,bc.units.per.cap, by = 'year') %>%
+      left_join(., bc.units.per.cap, by = 'year') %>%
       mutate(delta = ave-bc_ave) %>%
       mutate(response = ifelse(delta < 0,"below", "above")) %>%
       mutate(response = ifelse(delta == 0,"No data",response))
+
 
 # Diverging barcharts
 ggplot(diff.df, aes(x = regional_district,
@@ -118,8 +117,9 @@ ggplot(diff.df, aes(x = regional_district,
       geom_bar(stat='identity', aes(fill=response), width=.5)  +
       scale_fill_manual(name="Mileage",
                   labels = c("Above Average", "Below Average", "No Data"),
-                  values = c("above"="#00ba38", "below"="#f8766d", "no data" = 'grey')) +
-      labs(title= "Regional difference from the average BC units per capita recycling") +
+                  values = c("above" = "#008000", "below"="#FF0000", "no data" = 'grey')) +
+      labs(title= "Regional difference from BC Ave",
+           subtitle = " Bev units per capita") +
       coord_flip()
 
 # Diverging Barcharts (all years)
@@ -129,8 +129,9 @@ ggplot(diff.df, aes(x = regional_district,
       geom_bar(stat='identity', aes(fill = response), width =.5)  +
       scale_fill_manual(name="Mileage",
                     labels = c("Above Average", "Below Average","No data"),
-                    values = c("above"="#00ba38", "below"="#f8766d", "no data" = 'grey')) +
-       labs(title= "Regional difference from the average BC units per capita recycling") +
+                    values = c("above" = "#008000", "below"="#FF0000", "no data" = 'grey')) +
+  labs(title= "Regional difference from BC Ave",
+       subtitle = " Bev units per capita") +
       coord_flip()
 #ggsave(paste('out/',"06_regional_bc_ave_unitsPerCap_allyrs.png"))
 
@@ -211,7 +212,6 @@ rd.names <- rd[,c("ADMIN_AREA_ABBREVIATION","ADMIN_AREA_NAME")]
 
 
 # Grab the financial data -------------------------------
-all.finance
 
 finance <- all.finance %>% filter(type == 'bev')
 
@@ -231,19 +231,40 @@ ggplot(fdata, aes(year, total, fill = measure)) +
            x = "Year", y = " Amount ($1,000,000)") +
       theme(axis.text.x = element_text(angle = 90))
 
+# look at revenue vs education $$
+to.keep = c("Balance (Including Deposits Charged/Returned)",
+            "Expenditure-Consumer Awareness")
+
+fdata <-finance %>%
+  select(-c("organization","type"))%>%
+  group_by(measure) %>%
+  summarise_all(., sum, na.rm = TRUE) %>%
+  gather("year", "n", 2:length(.)) %>%
+  mutate(n.m = n/1000000) %>%
+  group_by(measure, year) %>%
+  summarise(total = sum(n.m,na.rm = TRUE)) %>%
+  filter(measure %in% to.keep)
+
+ggplot(fdata, aes(year, total, fill = measure)) +
+  geom_bar(stat="identity",position="dodge") +
+  labs(title="Unclaimed deposits and consumer-expenditure",
+       x = "Year", y = " Amount ($1,000,000)") +
+  theme(axis.text.x = element_text(angle = 90))
+
+
 # Grab the unit data -------------------------------
 
 units <- all.units %>% filter(type == 'bev')
 
 udata <- units %>%
-      dplyr::select(-c(organization)) %>%
-      gather("year", "n", 3:length(.)) %>%
-      mutate(n.m = n/1000000) %>%
-      group_by(measure, year) %>%
-      summarise(total = sum(n.m,na.rm = TRUE))
+      dplyr::select(-c(organization, type)) %>%
+      group_by(measure) %>%
+      summarise_all(., sum, na.rm = TRUE) %>%
+      gather("year", "n", 2:length(.)) %>%
+      mutate(n.m = n/1000000)
 
 # make a pretty graph
-ggplot(udata, aes(year, total, fill = measure)) +
+ggplot(udata, aes(year, n.m, fill = measure)) +
       geom_bar(stat = "identity", position = "dodge") +
       labs(title = "Recycled Units Returned and Sold",
                x = "Year",
@@ -252,8 +273,8 @@ ggplot(udata, aes(year, total, fill = measure)) +
 
 #calculate the recovery rate and make a line plot
 sum.udata1 <- units  %>%
-      dplyr::select(-c(organization)) %>%
-      gather("year", "n", 3:length(.)) %>%
+      select(-c(organization, type)) %>%
+      gather("year", "n", 2:length(.)) %>%
       mutate(n.m = n/1000000) %>%
       group_by(measure,year) %>%
       summarise(total = sum(n.m, na.rm = TRUE)) %>%
