@@ -1,0 +1,251 @@
+---
+title: "Project_Notes"
+author: "G Perkins"
+date: "June 5, 2019"
+output: 
+  html_document: 
+    toc : true
+    toc_float: 
+      collapsed: false
+      smooth_scroll: false
+      
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# EPR: Project Notes
+
+The dataset provide as part of environment reporting legislation in pdf format and has been transposed to an excel. Detailed information about the program can be found here <https://www2.gov.bc.ca/gov/content/environment/waste-management/recycling/product-stewardship> 
+
+This indicator will be replacing the tire recycling indicator<https://www2.gov.bc.ca/gov/content/environment/research-monitoring-reporting/reporting/environmental-reporting-bc/sustainability-indicators>
+
+
+## Initial data summary: 
+
+Main indicators: 
+
+- Beverage containers 
+- Oil 
+- Tires
+- Paint-Flam_Pest (pfp)
+- Elect
+- Lead-Acid Batteries 
+- Packaging and Printed Paper (ppp)
+
+BC population data was manualy extracted per regional district for 2000 - 2018 using the BC Stats tool:  <https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx>
+
+General conclusions: 
+
+Broadly, each of the above indicators has data on 1) quantity of items (kgs/litres) per regional district, 2) financial and 3) units moved. Finanial and unit data is compiled at the provincial scale (aspatial).  
+
+Some general conclusions 
+Not all indicators have information on all three catergories and collection years vary per indicator. Some changes in regional district nameing and merging of districts over time will need to be addressed. 
+
+
+# Work flow. 
+
+1) All raw data is extracted from the excel worksheets and combined into a three dataframes using the 'clean.readxl.R' script. The dataframes are 'all.finance', 'all.units', 'all.regions'
+
+2) Data is then loading into R and inital summaries and exploration is conducted using the '01_load.R' script 
+
+3) To be continued......
+
+
+** Note: during this process when typos and errors were found in the original
+datasets manual updates were made and marked in highlighter to correct or double check with data custodian. 
+
+
+
+# Beverage containers. 
+
+Collected from multiple groups: Encorp Pacific (Canada), BC Brewers Recycles Collection Council. Both of these collect data on the units collected, weight collection (tonnes) with population data from 2006 - 2017. There is also some financial data ( revenue/ expenditure /deposits charged / units moved) and other (CO2 Equivalent Reduced (tonnes), weight of material)
+
+Data exploration points to consider:  
+
+- Regional and financial data grouped for Encorp and BCBRCC 
+- BCBRC years are different (2007/08, 2008/09,2009/10) as BCBRCC reported to financial years (March 31st) over this period. In these cases data was assigned to preceeding year. 
+- In Encorp data : Comox/Strathcona joined (2007 - 2010), then split into two seperate regions from 2011 onwards. These are recorded seperately for BRCC. 
+- Some data anomolied in Central Coast and Central Kootneys in 2015 were verified in pdf reports and found to be same as pdf report. 
+- Liquor distribution branch data and 'other' catergory not included ( 2000 - 2006) only active for short time or vague metrics 
+- Some data anomolied in Central Coast and Central Kootneys in 2015 were verified in pdf reports and found to be same as pdf report. 
+
+Some notes of caution
+
+- ** FINANCE NOTE: Not all programs report expenditure, and information is not available for all years. These figures represent 'reported' expenditure only (i.e. that included in published annual reports) and should not be taken as total costs of EPR programs.	
+
+
+## Data exploration 
+read in the data
+
+```{r loadlibs, echo=FALSE,include = FALSE}
+
+x <- c("dplyr", "ggplot2", "tidyr", "stringr", "reshape", 
+       "bcmaps", "sf", "envreportutils") 
+lapply(x, library, character.only = TRUE)
+rm(x)  
+getwd()
+
+```
+
+#```{r loaddata, echo=TRUE,include = TRUE}
+
+data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# 
+#to run on O:/
+
+# Read in population data -------------------------------
+# BC Pop Stats (ignore and get directly from Stats Can)
+# https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx
+# manual export of population per regional district (2000 - 2018) and store in data folder
+
+pop.0 <- read.csv(paste('data','Population_Estimates.csv',sep = "/"),
+                header = TRUE)
+
+pop <- pop.0 %>%
+       mutate(regional_district = gsub("-", " ", Regional.District),
+              n = Total, year = as.character(Year)) %>%
+       select(-c('ï..','Gender','Regional.District','Total',"Year"))
+
+#######################################################################
+
+source(paste('scratch','clean_readxl.R',sep = '/'))
+
+#```
+
+#```{r Bev data, echo=TRUE,include = TRUE}
+# Beverage ------------------------------------------------------
+
+regions <- all.regions %>% filter(type == 'bev')
+
+priority <- regions %>%
+      dplyr::filter(measure %in%
+                  c("Absolute Collection-Units Collected-",
+                    "Absolute Collection-Weight Collected (Tonnes)-")) %>%
+      select(-c(organization,type)) %>%
+      gather("year", "n",3:length(.)) %>%
+      left_join(.,pop, by = c("regional_district","year")) %>%
+      dplyr::rename(.,'pop' = 'n.y') %>%
+      dplyr::rename('n' = 'n.x')
+
+priority$n.pop = priority$n / priority$pop # this is not working in dplyr version
+
+# break up into weight and units
+units.per.cap <- priority %>%
+      filter(measure == 'Absolute Collection-Units Collected-' )
+weight.per.cap <-  priority %>%
+      filter(measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
+
+# error check notes 
+
+# 1) Comox/ Comox - Stathcona and Queen Charlotte have missing data 
+#   - still need to be resolved
+# 
+# 2) some anomolied in Central Coast and Central Kootneys
+#     2015 - checked the original data and true is same as pdf report
+
+# extract the population data and export as csv
+
+ ## Units per capita
+ggplot(units.per.cap, aes(year,n.pop)) +
+      facet_wrap(~ regional_district) +
+      geom_bar(stat = "identity",position = "dodge") +
+      labs(title = "Regional Units Recycled per capita",
+           x = "Year", y = "units per capita") +
+      theme(axis.text.x = element_text(angle = 90))
+
+#``` 
+ 
+ 
+
+
+
+
+### How does the amount of revenue influence the number of unclaimed deposits?
+
+
+
+There is not a strong correlation between with awareness, may need to adjust this per unit? or check if the awareness expenditure is for multiple programs (ECPOR and BCRCCC)
+
+2) Units Moved
+Is there a difference in the units moved (recovered or sold over time?)
+
+
+   
+   Appears to be a gap in the 2007 and 2008 year that needs to be checked as units show large decrease. 
+   Perhaps better to show the recovery rate, rather than recovered and sold (two versus one number)
+   
+
+
+3. Other category. 
+This includes data on the amount of emissions "saved/reduced" and total volumes 
+
+
+ 
+This plot could be reduced or split into two plots emissions saved and emissions and potentially weight of material recycled? 
+
+## Explore the spatial data sets: Units and weight per capita
+# 
+This includes regional based estimate. Still need to edit the comox Strathcona regions. Also some data entry errors are apparent when calculating the general plots 
+
+
+No w data is format split this into different units, tonnes and units per capita and create some summary plots 
+
+
+This plots shows some obvious data errors to check. Also highlights need to adjust Comox and Strathcona datasets as not being correctly calculated. 
+
+
+```
+
+Plot 2 also shows similar issue with naming to be fixed 
+
+We can also investigate the difference from the provincial average: 
+
+
+
+
+Thoughts on Beverage recycling:
+
+- Map regional data sets for presentation (leaflet)
+- difference maps better than raw values ? Difference to average works with change per year indicated 
+- could present some metrics within graphs (ie non - spatial data sets) 
+- Northern Rockies missing population data - need to pull data from stats Canada per year 
+
+
+# Lubricating Oil, Filters and containers. 
+
+Collection broken in regional and temporal data sets from 2010 to 2017 including: 
+
+- Used oil (litres per person) 
+- Used filters (kg per person) 
+- Containers (kg per person)
+- Antifreeze (kg person)
+
+Data exploration points to consider: 
+Temporal and a-spatial data sets include financial, collection sites, units moved, and end fate for products. 
+Collection sites does not look like much change in trends over time?
+Could be opportunity to combine a number of measure (ie beverage together). Comox and Strathcona are treated separately in this analysis. 
+
+Could also combine the % recover rate over time for different metrics in a single graph 
+
+## Compare regional datasets for priority measures. 
+Note these are already calculated per person (assuming the pop data is correct)
+
+
+
+
+Used oil is a magnitude difference in volume. Repeat graph with out used oil values: 
+
+
+
+
+
+
+# TO DO STILL : 
+
+## Explore the non spatial data (all regions combined): Financial, units moved and other
+1) Financial 
+
+
+
+
