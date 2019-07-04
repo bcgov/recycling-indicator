@@ -29,13 +29,34 @@ Main indicators:
 - Beverage containers 
 - Oil 
 - Tires
-- Paint-Flam_Pest
+- Paint-Flam_Pest (pfp)
 - Elect
 - Lead-Acid Batteries 
-- Packaging and Printed Paper
+- Packaging and Printed Paper (ppp)
+
+BC population data was manualy extracted per regional district for 2000 - 2018 using the BC Stats tool:  <https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx>
+
+General conclusions: 
+
+Broadly, each of the above indicators has data on 1) quantity of items (kgs/litres) per regional district, 2) financial and 3) units moved. Finanial and unit data is compiled at the provincial scale (aspatial).  
+
+Some general conclusions 
+Not all indicators have information on all three catergories and collection years vary per indicator. Some changes in regional district nameing and merging of districts over time will need to be addressed. 
 
 
-Along with the BC population measures as of populations for 2018 and program financials and population estimates. 
+# Work flow. 
+
+1) All raw data is extracted from the excel worksheets and combined into a three dataframes using the ```r clean.readxl.R ``` script. The dataframes are ```r all.finance, all.units, all.regions```
+
+2) Data is then loading into R and inital summaries and exploration is conducted using the ```r 01_load.R ``` script 
+
+3) To be continued......
+
+
+** Note: during this process when typos and errors were found in the original
+datasets manual updates were made and marked in highlighter to correct or double check with data custodian. 
+
+
 
 # Beverage containers. 
 Collected from multiple groups: Encorp Pacific (Canada), BC Brewers Recycles Collection Council. Both of these collect data on the units collected, weight collection (tonnes) with population data from 2006 - 2017. There is also some financial data ( revenue/ expenditure /deposits charged / units moved) and other (CO2 Equivalent Reduced (tonnes), weight of material)
@@ -80,10 +101,11 @@ create a separate population csv to be used with the other recycling metrics.
 read in the data
 
 ```{r loadlibs, echo=FALSE,include = FALSE}
-x <- c("dplyr","ggplot2","tidyr","stringr","here", "bcmaps", "readr",
-       "sf","envreportutils") 
-lapply(x, library, character.only = TRUE) # load the required packages
-rm(x)
+
+x <- c("dplyr", "ggplot2", "tidyr", "stringr","reshape", 
+       "bcmaps", "sf", "envreportutils") 
+lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
+
 ```
 
 ```{r loaddata, echo=TRUE,include = TRUE}

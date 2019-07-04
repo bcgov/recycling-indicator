@@ -12,7 +12,8 @@
 
 ## Load in libraries
 
-x <- c("dplyr","ggplot2","tidyr","stringr","reshape", "bcmaps", "sf", "envreportutils") #raster","sp","sf","rgdal","xlsx","rJava","tibble","mapview","gtools")
+x <- c("dplyr","ggplot2","tidyr","stringr","reshape",
+       "bcmaps", "sf", "envreportutils") #raster","sp","sf","rgdal","xlsx","rJava","tibble","mapview","gtools")
 lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
 
 ## Load  data files
@@ -59,20 +60,24 @@ priority <- regions %>%
 
 priority$n.pop = priority$n / priority$pop # this is not working in dplyr version
 
-
-
 # break up into weight and units
 units.per.cap <- priority %>%
       filter(measure == 'Absolute Collection-Units Collected-' )
 weight.per.cap <-  priority %>%
       filter(measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
 
+# error check notes
+
+# 1) Comox/ Comox - Stathcona and Queen Charlotte have missing data
+#   - still need to be resolved
+#
+# 2) some anomolied in Central Coast and Central Kootneys
+#     2015 - checked the original data and true is same as pdf report
+
+
+
 ## Units per capita
-
-
-
-
-ggplot(units.per.cap, aes(year, n)) +
+ggplot(units.per.cap, aes(year,n.pop)) +
       facet_wrap(~ regional_district) +
       geom_bar(stat = "identity",position = "dodge") +
       labs(title = "Regional Units Recycled per capita",
@@ -80,11 +85,12 @@ ggplot(units.per.cap, aes(year, n)) +
       theme(axis.text.x = element_text(angle = 90))
 
 ## weight per capita
-ggplot(weight.per.cap,aes(year,unit.per.cap)) +
+ggplot(weight.per.cap,aes(year,n.pop)) +
       facet_wrap(~ regional_district) +
       geom_bar(stat = "identity",position="dodge") +
       labs(title = "Regional weight of recycling (tonnes) per capita",
-           x = "Year", y = "weight per cap (tonnes")
+           x = "Year", y = "weight per cap (tonnes") +
+      theme(axis.text.x = element_text(angle = 90))
 
 # calculate the provincial average
 bc.units.per.cap <- units.per.cap %>%
