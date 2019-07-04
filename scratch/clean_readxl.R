@@ -192,7 +192,6 @@ tire_financial <- read_tire_financial(excel_file,"B31:M37")
 tire_units <- read_tire_units(excel_file,"B39:M49")
 
 
-
 # PAINTS _FLAM_PEST ----------------------------------------
 
 read_pfp_recovery <- function(file, range) {
@@ -364,11 +363,17 @@ ppp_financial <- read_ppp_financial(excel_file,"A15:E16")
 all.finance <- bind_rows(financial, oil_financial, tire_financial,
                          ppp_financial, pfp_financial)
 
-all.regions <- bind_rows(#priority_raw,
-                         recovery_pp, pfp_recovery, elect_compile,
-                         ppp_recovery, pharm_recovery)
-## to fix : priority_raw,# need to remove text from priority_pp
+all.regions <- bind_rows(priority_raw, recovery_pp, pfp_recovery,
+                         elect_compile, ppp_recovery, pharm_recovery)
 
 all.units <- bind_rows(units, oil_units, tire_units, pfp_units,
                        pharm_units)
 
+write.csv(all.finance, paste('data', "all.finance.csv", sep = "/"),
+          row.names = FALSE )
+
+write.csv(all.regions, paste('data', "all.regions.csv", sep = "/"),
+          row.names = FALSE )
+
+write.csv(all.units, paste('data', "all.units.csv", sep = "/"),
+          row.names = FALSE )
