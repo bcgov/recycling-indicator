@@ -33,7 +33,9 @@ pop <- pop.0 %>%
               n = Total, year = as.character(Year)) %>%
        select(-c('ï..','Gender','Regional.District','Total',"Year"))
 
-# STILL TO DO : check we have regional pop data ie Northern Rockies?
+
+# STILL TO DO : Add regional pop data ie Northern Rockies as this is
+# throwing out the oil indicators
 
 
 #######################################################################
@@ -299,20 +301,20 @@ ggplot(sum.udata1, aes(x = year, y = RecoveryRate))+
 
 ## OIL Lubraicant and Filters ------------------------------
 
-
 regions <- all.regions %>% filter(type == 'oil')
 
-# extract the raw unit data
-
 pdata <- regions %>%
-  filter()
-  dplyr::filter(!regional_district == '') %>%
-  gather("year", "n",3:length(.))
+      select(-c(organization, type)) %>%
+      filter(!regional_district == '') %>%
+      gather("year", "n",3:length(.)) %>%
+      filter(year >2009)
 
 ## do a basic graph to check it out
 ggplot(pdata, aes(year, n, fill = measure)) +
-  geom_bar(stat = "identity",position = "dodge") +
-  labs(title = "Absolute collection (kg/litres) per person", x = "Year", y = "Collection (kg) per person")
+      geom_bar(stat = "identity",position = "dodge") +
+      labs(title = "Absolute collection (kg/litres) per person",
+           x = "Year",
+           y = "Collection (kg) per person")
 
 # used oil is order of magnitude more!
 pdata.1 <- pdata %>% dplyr::filter(!measure == 'oil_lt_pp')
@@ -320,8 +322,18 @@ pdata.1<- pdata.1[complete.cases(pdata.1), ]
 
 ## do a basic graph to check it out
 ggplot(pdata.1,aes(year, n, fill = measure)) +
-  geom_bar(stat="identity",position="dodge") +
-  labs(title="Absolute collection (kg) per person", x = "Year", y = "Collection (kg) per person")
+      geom_bar(stat="identity",position="dodge") +
+      labs(title="Absolute collection (kg) per person",
+           x = "Year",
+           y = "Collection (kg) per person")
+
+####################################################
+
+## UP TO HERE IN RMD SUMMARY  revamp
+
+
+#####################################################
+
 
 # calculate the provincial average
 bc_units_per_cap_yr <- pdata %>%  # per yr
@@ -334,11 +346,13 @@ bc_units_per_cap <- pdata %>%     # all years
   group_by(measure) %>%
   summarise(BCave = mean(n))
 
-regional_units_per_cap_yr <- pdata %>% na.omit() %>%
+regional_units_per_cap_yr <- pdata %>%
+  na.omit() %>%
   group_by(year, measure, regional_district) %>%
   summarise(ave = mean(n))
 
-regional_units_per_cap <- pdata %>% na.omit() %>%
+regional_units_per_cap <- pdata %>%
+  na.omit() %>%
   group_by(measure, regional_district) %>%
   summarise(ave = mean(n))
 
