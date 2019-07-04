@@ -34,47 +34,50 @@ pop <- pop.0 %>%
 
 #######################################################################
 
-all.finance
-all.regions
-all.units
+source(paste('scratch','clean_readxl.R',sep = '/'))
+
+##or
+#all.finance <- read.csv(paste('data','all.finance.csv',sep = "/"), header = TRUE)
+#all.regions <- read.csv(paste('data','all.regions.csv',sep = "/"), header = TRUE)
+#all.units <- read.csv(paste('data','all.units.csv',sep = "/"), header = TRUE)
+
+
 
 # Beverage ------------------------------------------------------
 
-# still need to adjust this for the combined data set update
+regions <- all.regions %>% filter(type == 'bev')
 
-priority <- priority_raw %>%
+priority <- regions %>%
       dplyr::filter(measure %in%
                   c("Absolute Collection-Units Collected-",
                     "Absolute Collection-Weight Collected (Tonnes)-")) %>%
-
-      dplyr::select(-c(organization)) %>%
-      mutate(regional_district = gsub("-", " ", regional_district)) %>%
+      select(-c(organization,type)) %>%
       gather("year", "n",3:length(.)) %>%
-      mutate(n = as.numeric(n))
+      left_join(.,pop, by = c("regional_district","year")) %>%
+      dplyr::rename(.,'pop' = 'n.y') %>%
+      dplyr::rename('n' = 'n.x')
 
-# group together the multiple companies
-sum.pdata <- priority %>%
-      group_by(measure, regional_district, year) %>%
-      summarise(total = sum(n, na.rm = TRUE))
+priority$n.pop = priority$n / priority$pop # this is not working in dplyr version
 
 
-# merge in the pop.long form data
-ppdata <- left_join(sum.pdata, pop,
-                    by = c("regional_district","year")) %>%
-      mutate(unit.per.cap = total / n)
 
 # break up into weight and units
-units.per.cap <- ppdata %>%
+units.per.cap <- priority %>%
       filter(measure == 'Absolute Collection-Units Collected-' )
-weight.per.cap <-  ppdata %>%
+weight.per.cap <-  priority %>%
       filter(measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
 
 ## Units per capita
-ggplot(units.per.cap,aes(year,unit.per.cap)) +
+
+
+
+
+ggplot(units.per.cap, aes(year, n)) +
       facet_wrap(~ regional_district) +
       geom_bar(stat = "identity",position = "dodge") +
       labs(title = "Regional Units Recycled per capita",
-           x = "Year", y = "units per capita")
+           x = "Year", y = "units per capita") +
+      theme(axis.text.x = element_text(angle = 90))
 
 ## weight per capita
 ggplot(weight.per.cap,aes(year,unit.per.cap)) +
@@ -202,51 +205,50 @@ rd.names <- rd[,c("ADMIN_AREA_ABBREVIATION","ADMIN_AREA_NAME")]
 
 
 # Grab the financial data -------------------------------
+all.finance
 
-fdata <-financial %>%
+finance <- all.finance %>% filter(type == 'bev')
+
+to.keep <- c('Deposits Charged','Deposits Refunded',
+             'Expenditure-Consumer Awareness')
+
+fdata <-finance %>%
+      gather("year", "n", 4:length(.)) %>%
+      mutate(n.m = n/1000000) %>%
+      group_by(measure, year) %>%
+      summarise(total = sum(n.m,na.rm = TRUE)) %>%
+      filter(measure %in% to.keep)
+
+ggplot(fdata, aes(year, total, fill = measure)) +
+      geom_bar(stat="identity",position="dodge") +
+      labs(title="Unclaimed deposits and consumer-expenditure",
+           x = "Year", y = " Amount ($1,000,000)") +
+      theme(axis.text.x = element_text(angle = 90))
+
+# Grab the unit data -------------------------------
+
+units <- all.units %>% filter(type == 'bev')
+
+udata <- units %>%
+      dplyr::select(-c(organization)) %>%
       gather("year", "n", 3:length(.)) %>%
-      mutate(n.m = n/1000000)
-
-sum.fdata <- fdata %>%
+      mutate(n.m = n/1000000) %>%
       group_by(measure, year) %>%
       summarise(total = sum(n.m,na.rm = TRUE))
 
-to.remove <-c("Total reported revenues - Encorp","Total reported expenditure* - Encorp","Total reported expenditure - excluding deposits refunded* - Encorp","Total deposits collected Encorp","Total deposits refunded Encorp")
-to.keep <- c('Deposits Charged','Deposits Refunded','Expenditure-Consumer Awareness')
-
-sum.fdata <- sum.fdata %>%
-    filter(measure %in% to.keep )
-
-#Deposits charged and refunded over time
-
-# Does spending more on consumer awareness decrease unclaimed deposits
-ggplot(sum.fdata, aes(year, total, fill = measure)) +
-      geom_bar(stat="identity",position="dodge") +
-      labs(title="Unclaimed deposits and consumer-expenditure", x = "Year", y = " Amount ($1,000,000)")
-    #ggsave(paste('out/',"01_Beverage_UnitsMoved.png"))
-
-#-------------------------------------------------------
-# Grab the units moved
-
-udata <- units %>%
-    dplyr::select(-c(organization)) %>%
-    gather("year", "n",2:length(.)) %>%
-    mutate(n.m = n/1000000)
-
-# summarise per year
-sum.udata <- udata %>%
-  group_by(measure,year) %>%
-  summarise(total = sum(n.m,na.rm = TRUE))
-
 # make a pretty graph
-ggplot(sum.udata, aes(year, total, fill = measure)) +
+ggplot(udata, aes(year, total, fill = measure)) +
       geom_bar(stat = "identity", position = "dodge") +
       labs(title = "Recycled Units Returned and Sold",
-        x = "Year", y = "Total no. (millions)")
-      #ggsave(paste('out/',"01_Beverage_UnitsMoved.png"))
+               x = "Year",
+               y = "Total no. (millions)") +
+      theme(axis.text.x = element_text(angle = 90))
 
 #calculate the recovery rate and make a line plot
-sum.udata1 <-  udata %>%
+sum.udata1 <- units  %>%
+      dplyr::select(-c(organization)) %>%
+      gather("year", "n", 3:length(.)) %>%
+      mutate(n.m = n/1000000) %>%
       group_by(measure,year) %>%
       summarise(total = sum(n.m, na.rm = TRUE)) %>%
       spread(., measure, total)
@@ -258,30 +260,11 @@ ggplot(sum.udata1, aes(x = year, y = RecoveryRate))+
       geom_point() +
       ylim(60,100) +
       geom_hline(yintercept = 75, color = "red", lty = 2) +
-      labs(title="Recycled Units Recovery Rate (%)", x = "Year", y = "Recovery Rate %")
- # ggsave(paste('out/',"02_Beverage_UnitsMoved.png"))
+      labs(title="Recycled Units Recovery Rate (%)",
+              x = "Year",
+              y = "Recovery Rate %")+
+      theme(axis.text.x = element_text(angle = 90))
 
-# Other catergories : Still to be updated # NOT WORKING ---------------------------------------------------------------
-# Grab data from "other catergory"
-
-odata <- rdata %>% dplyr::filter(Catergory == 'Other') %>%
-    dplyr::select(-c(Company, Catergory,Region)) %>%
-    gather("year", "n",2:19)
-odata$n <- replaceCommas(odata$n) # fix the fromatting in numeric
-odata$n.t <-odata$n/1000
-odata$year = sub("X","",odata$year)  # get rid of x on year column
-odata$Measure = sub("tonnes","Tonnes",odata$Measure)  # get rid of x on year column
-
-odata <- odata %>% group_by(Measure,year) %>%
-  summarise(total = sum(n.t,na.rm = TRUE))
-
-# split in +ve and -ve amounts
-# make a nice plot
-ggplot(odata, aes(year,total,fill=Measure))+
-  geom_bar(stat="identity",position="dodge") +
-  labs(title="Tonnes of material and reduction of pollutants", x = "Year", y = "Tonnes (thousands)") +
-  scale_y_continuous(limits = c(0,250))
-#------------------------------------------------------------
 
 ###################################################################################################
 ## OIL Lubraicant and Filters ------------------------------
