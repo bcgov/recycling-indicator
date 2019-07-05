@@ -26,12 +26,12 @@ data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to r
 # manual export of population per regional district (2000 - 2018) and store in data folder
 
 pop.0 <- read.csv(paste('data','Population_Estimates.csv',sep = "/"),
-                header = TRUE)
+                  header = TRUE)
 
 pop <- pop.0 %>%
-       mutate(regional_district = gsub("-", " ", Regional.District),
-              n = Total, year = as.character(Year)) %>%
-       select(-c('ï..','Gender','Regional.District','Total',"Year"))
+  mutate(regional_district = gsub("-", " ", Regional.District),
+         n = Total, year = as.character(Year)) %>%
+  select(-c('ï..','Gender','Regional.District','Total',"Year"))
 
 
 # STILL TO DO : Add regional pop data ie Northern Rockies as this is
@@ -56,88 +56,84 @@ regions <- all.regions %>% filter(type == 'bev')
 # still need to fix comox / strathcona in all.regions
 
 priority <- regions %>%
-      dplyr::filter(measure %in%
+  dplyr::filter(measure %in%
                   c("Absolute Collection-Units Collected-",
                     "Absolute Collection-Weight Collected (Tonnes)-")) %>%
-      select(-c(organization,type)) %>%
-      group_by(measure, regional_district) %>%
-      summarise_all(., sum, na.rm = TRUE) %>%
-      gather("year", "n",3:length(.)) %>%
-      left_join(.,pop, by = c("regional_district","year")) %>%
-      dplyr::rename(.,'pop' = 'n.y') %>%
-      dplyr::rename('n' = 'n.x')
+  select(-c(organization,type)) %>%
+  group_by(measure, regional_district) %>%
+  summarise_all(., sum, na.rm = TRUE) %>%
+  gather("year", "n",3:length(.)) %>%
+  left_join(.,pop, by = c("regional_district","year")) %>%
+  dplyr::rename(.,'pop' = 'n.y') %>%
+  dplyr::rename('n' = 'n.x')
 
 priority$n.pop = priority$n / priority$pop # this is not working in dplyr version
 
 # break up into weight and units
 units.per.cap <- priority %>%
-      filter(measure == 'Absolute Collection-Units Collected-' )
+  filter(measure == 'Absolute Collection-Units Collected-' )
 weight.per.cap <-  priority %>%
-      filter(measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
-
-# Data Anommolies
-# 1) some anomolied in Central Coast and Central Kootneys
-#     2015 - checked the original data and true is same as pdf report
+  filter(measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
 
 ## Units per capita
 ggplot(units.per.cap, aes(year,n.pop)) +
-      facet_wrap(~ regional_district) +
-      geom_bar(stat = "identity",position = "dodge") +
-      labs(title = "Regional Units Recycled per capita",
-           x = "Year", y = "units per capita") +
-      theme(axis.text.x = element_text(angle = 90))
+  facet_wrap(~ regional_district) +
+  geom_bar(stat = "identity",position = "dodge") +
+  labs(title = "Regional Units Recycled per capita",
+       x = "Year", y = "units per capita") +
+  theme(axis.text.x = element_text(angle = 90))
 
 ## weight per capita
 ggplot(weight.per.cap,aes(year,n.pop)) +
-      facet_wrap(~ regional_district) +
-      geom_bar(stat = "identity",position="dodge") +
-      labs(title = "Regional weight of recycling (tonnes) per capita",
-           x = "Year", y = "weight per cap (tonnes") +
-      theme(axis.text.x = element_text(angle = 90))
+  facet_wrap(~ regional_district) +
+  geom_bar(stat = "identity",position="dodge") +
+  labs(title = "Regional weight of recycling (tonnes) per capita",
+       x = "Year", y = "weight per cap (tonnes") +
+  theme(axis.text.x = element_text(angle = 90))
 
 # calculate the provincial average
 bc.units.per.cap <- units.per.cap %>%
-      na.omit() %>%
-      group_by(year) %>%
-      summarise(bc_ave = mean(n.pop))
+  na.omit() %>%
+  group_by(year) %>%
+  summarise(bc_ave = mean(n.pop))
 
 regional.units.per.cap <- units.per.cap %>%
-      na.omit() %>%
-      group_by(year,regional_district) %>%
-      summarise(ave = mean(n.pop))
+  na.omit() %>%
+  group_by(year,regional_district) %>%
+  summarise(ave = mean(n.pop))
 
 # join the regional and prov. ave data and calculate the difference
 diff.df <- regional.units.per.cap %>%
-      left_join(., bc.units.per.cap, by = 'year') %>%
-      mutate(delta = ave-bc_ave) %>%
-      mutate(response = ifelse(delta < 0,"below", "above")) %>%
-      mutate(response = ifelse(delta == 0,"No data",response))
-
+  left_join(., bc.units.per.cap, by = 'year') %>%
+  mutate(delta = ave-bc_ave) %>%
+  mutate(response = ifelse(delta < 0,"below", "above")) %>%
+  mutate(response = ifelse(delta == 0,"No data",response))
 
 # Diverging barcharts
 ggplot(diff.df, aes(x = regional_district,
                     y = delta,
                     label= delta)) +
-      facet_wrap(~year) +
-      geom_bar(stat='identity', aes(fill=response), width=.5)  +
-      scale_fill_manual(name="Mileage",
-                  labels = c("Above Average", "Below Average", "No Data"),
-                  values = c("above" = "#008000", "below"="#FF0000", "no data" = 'grey')) +
-      labs(title= "Regional difference from BC Ave",
-           subtitle = " Bev units per capita") +
-      coord_flip()
+  facet_wrap(~year) +
+  geom_bar(stat='identity', aes(fill=response), width=.5)  +
+  scale_fill_manual(name="Mileage",
+                    labels = c("Above Average", "Below Average", "No Data"),
+                    values = c("above" = "#008000", "below"="#FF0000", "no data" = 'grey')) +
+  labs(title= "Regional difference from BC Ave",
+       subtitle = " Bev units per capita") +
+  coord_flip()
+
 
 # Diverging Barcharts (all years)
 ggplot(diff.df, aes(x = regional_district,
                     y = delta,
                     label = delta)) +
-      geom_bar(stat='identity', aes(fill = response), width =.5)  +
-      scale_fill_manual(name="Mileage",
+  geom_bar(stat='identity', aes(fill = response), width =.5)  +
+  scale_fill_manual(name="Mileage",
                     labels = c("Above Average", "Below Average","No data"),
                     values = c("above" = "#008000", "below"="#FF0000", "no data" = 'grey')) +
   labs(title= "Regional difference from BC Ave",
        subtitle = " Bev units per capita") +
-      coord_flip()
+  coord_flip()
 #ggsave(paste('out/',"06_regional_bc_ave_unitsPerCap_allyrs.png"))
 
 

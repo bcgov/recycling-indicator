@@ -19,7 +19,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 The dataset provide as part of environment reporting legislation in pdf format and has been transposed to an excel. Detailed information about the program can be found here <https://www2.gov.bc.ca/gov/content/environment/waste-management/recycling/product-stewardship> 
 
-This indicator will be replacing the tire recycling indicator<https://www2.gov.bc.ca/gov/content/environment/research-monitoring-reporting/reporting/environmental-reporting-bc/sustainability-indicators>
+This indicator will be replacing the tire recycling indicator <https://www2.gov.bc.ca/gov/content/environment/research-monitoring-reporting/reporting/environmental-reporting-bc/sustainability-indicators>
 
 
 ## Data summary: 
@@ -59,7 +59,7 @@ datasets manual updates were made and marked in highlighter to correct or double
 
 
 
-## 1) Beverage containers. 
+## 1) Beverage containers 
 
 Collected from multiple groups: Encorp Pacific (Canada), BC Brewers Recycles Collection Council. Both of these collect data on the units collected, weight collection (tonnes) with population data from 2006 - 2017. There is also some financial data ( revenue/ expenditure /deposits charged / units moved) and other (CO2 Equivalent Reduced (tonnes), weight of material)
 
@@ -70,16 +70,11 @@ Data exploration points to consider:
 - In Encorp data Comox and Strathcona joined (2007 to 2010), then split into two seperate regions from 2011 onwards. These are recorded seperately for BRCC. 
 - Some data anomolied in Central Coast and Central Kootneys in 2015 were verified in pdf reports and found to be same as pdf report. 
 
-
 #### Regional data exploration 
 
 Note I still need to edit the comox Strathcona regions.
 
-```{r loadlibs, echo=FALSE,include = FALSE}
-
-#- Liquor distribution branch data and other catergory not included 2000 to #2006 only active for short time or vague metrics.
-#- Some data anomolied in Central Coast and Central Kootneys in 2015 were #verified in pdf reports and found to be same as pdf report. 
-
+```{r loadlibs, echo = TRUE, include = FALSE, message = FALSE}
 
 x <- c("dplyr", "ggplot2", "tidyr", "stringr", 
        "bcmaps", "sf", "envreportutils") 
