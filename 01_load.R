@@ -566,7 +566,17 @@ ggplot(sum.udata.l, aes(x = year, y = prop.recovered))+
 
 # regional data set only
 
+e_data <- all.regions %>% filter(type == "elect") %>%
+  select(-c(type)) %>%
+  group_by(organization, measure, regional_district)%>%
+  summarise_all(., sum, na.rm = TRUE) %>%
+  gather("year", "n",3:length(.))
+
+#  filter(year > 2009)
+
 elect_compile
+
+
 
 
 #########################################################
@@ -850,71 +860,79 @@ ggplot(sum.udata, aes(year, total, fill = measure)) +
 
 # ppp regional data ---------------------------------
 
+ppp_recovery <- all.regions %>% filter (type == "ppp")
 
 ppp_data <- ppp_recovery %>%
-      dplyr::filter(!regional_district == '') %>%
-      gather("year", "total", 3:length(.)) %>%
-      left_join(., pop, c("regional_district", "year")) %>%
-      mutate(weight.per.cap = total / n)
+  select(-c(organization, type)) %>%
+  dplyr::filter(!regional_district == '') %>%
+  gather("year", "total", 3:length(.)) %>%
+  left_join(., pop, c("regional_district", "year")) %>%
+  mutate(weight.per.cap = total / n)
 
 # calculate the provincial average
 bc.weight.per.cap <- ppp_data %>%
-      na.omit() %>%
-      group_by(year) %>%
-      summarise(bc_ave = mean(weight.per.cap))
+  na.omit() %>%
+  group_by(year) %>%
+  summarise(bc_ave = mean(weight.per.cap))
 
 regional.weight.per.cap <- ppp_data %>%
-      na.omit() %>%
-      group_by(year,regional_district) %>%
-      summarise(ave = mean(weight.per.cap))
+  na.omit() %>%
+  group_by(year, regional_district) %>%
+  summarise(ave = mean(weight.per.cap))
 
 # join the regional and prov. ave data and calculate the difference
 diff_df <- regional.weight.per.cap %>%
-      left_join(.,bc.weight.per.cap, by = 'year') %>%
-      mutate(delta = ave-bc_ave,
-           response = ifelse(delta < 0,"below", "above")) %>%
-      mutate(response = ifelse(delta == 0,"No data",response))
+  left_join(., bc.weight.per.cap, by = 'year') %>%
+  mutate(delta = ave - bc_ave,
+         response = ifelse(delta < 0,"below", "above")) %>%
+  mutate(response = ifelse(delta == 0,"No data",response))
 
 # Diverging barcharts
 ggplot(diff_df, aes(x = regional_district,
                     y = delta,
                     label= delta)) +
-      facet_wrap(~year) +
-      geom_bar(stat='identity', aes(fill=response), width=.5)  +
-      scale_fill_manual(name="Mileage",
+  facet_wrap(~year) +
+  geom_bar(stat='identity', aes(fill=response), width=.5)  +
+  scale_fill_manual(name="Mileage",
                     labels = c("Above Average", "Below Average", "No Data"),
                     values = c("above"="#00ba38", "below"="#f8766d", "no data" = 'grey')) +
-      labs(title= "Difference from BC average BC") +
-      coord_flip()
+  labs(title= "Difference from BC average BC") +
+  coord_flip()+
+  theme(legend.position = "none")
 
 # Diverging Barcharts (all years)
 ggplot(diff_df, aes(x = regional_district,
                     y = delta,
                     label = delta)) +
-      geom_bar(stat = 'identity', aes(fill = response), width = .5)  +
-      scale_fill_manual(name = "Mileage",
+  geom_bar(stat = 'identity', aes(fill = response), width = .5)  +
+  scale_fill_manual(name = "Mileage",
                     labels = c("Above Average",
                                "Below Average",
                                "No data"),
                     values = c("above" = "#00ba38",
                                "below" = "#f8766d",
                                "no data" = 'grey')) +
-      labs(title = "Regional difference from the average BC ") +
-      coord_flip()
+  labs(title = "Regional difference from the average BC ") +
+  theme(legend.position = "none") +
+  coord_flip()
 
 # ppp_finance -----------------------------
+
+ppp_finance <- all.finance %>% filter(type == 'ppp')
+
 ppp.fdata <- ppp_finance %>%
-      gather("year", "n", 2:length(.)) %>%
-      mutate(n.m = n/1000000)
+  select(-c(organization, type)) %>%
+  gather("year", "n", 2:length(.)) %>%
+  mutate(n.m = n/1000000)
 
 sum.fdata <- ppp.fdata %>%
-      group_by(measure, year) %>%
-      summarise(total = sum(n.m, na.rm = TRUE))
+  group_by(measure, year) %>%
+  summarise(total = sum(n.m, na.rm = TRUE))
 
 # Does spending more on consumer awareness decrease unclaimed deposits
 ggplot(sum.fdata, aes(year, total, fill = measure)) +
-      geom_bar(stat="identity",position="dodge") +
-      labs(title="PFP Recycling Expenditure and Revenue",
-          x = "Year",
-          y = " Amount ($1,000,000)") +
-      theme(axis.text.x = element_text(angle = 90))
+  geom_bar(stat="identity",position="dodge") +
+  labs(title="PFP Recycling Expenditure and Revenue",
+       x = "Year",
+       y = " Amount ($1,000,000)") +
+  theme(axis.text.x = element_text(angle = 90))
