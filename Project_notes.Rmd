@@ -6,7 +6,7 @@ output:
   html_document: 
     toc : true
     toc_float: 
-      collapsed: false
+      collapsed: true
       smooth_scroll: false
       
 ---
@@ -343,9 +343,10 @@ Data exploration points to consider:
 
 Temporal and a-spatial data sets include financial, collection sites, units moved, and end fate for products. 
 Collection sites does not look like much change in trends over time?
-Could be opportunity to combine a number of measure (ie beverage together). Comox and Strathcona are treated separately in this analysis. 
+Could be opportunity to combine a number of measure (ie beverage together).
 
-### Regional data exploration
+### Regional data exploration. 
+Note these values were calculated and supplied as per capita values with no other raw data provide. 
 
 ```{r, include = TRUE, echo = FALSE}
 regions <- all.regions %>% filter(type == 'oil')
@@ -611,8 +612,8 @@ This might need a bit more digging into to see the patterns
 ### Units (tires)
 
 The type of units aer broken into many subsets: 
-```{r, include = TRUE, echo = FALSE}
 
+```{r, include = TRUE, echo = FALSE}
 units <- all.units %>% filter(type == 'tire')
 
 udata <- tire_units %>%
@@ -624,9 +625,10 @@ to.keep <- c("Total Sold", "Total Collected")
 
 sumd <- udata %>% group_by(measure)%>% summarise(no. = n())
 print(sumd)
+
 ```
 
-```{r}
+```{r, include=TRUE, echo = FALSE}
 # summarise per year
 sum.udata <- udata %>%
       group_by(measure,year) %>%
@@ -653,3 +655,315 @@ ggplot(sum.udata.l, aes(x = year, y = prop.recovered))+
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
 
 ```
+
+Interesting the recycling units reconvery rate has decreased over time. This is based on total collected and sold not split into subsets of data catergories. 
+
+
+## 4) Electric 
+
+Electric datasets include a combination of many seperate components including smoke alarm, thermo, etc ....
+
+### Regional data 
+
+... Still to complete graphs 
+
+## 5) Paints - Flam - Pest (2000 - 2017) 
+
+### Regional data 
+
+```{r, include = TRUE, echo = FALSE}
+pfp_recovery <- all.regions %>% filter(type == 'pfp')
+
+pfp_data <- pfp_recovery %>%
+  select(-c(organization,type)) %>%
+  dplyr::filter(!regional_district == '') %>%
+  group_by(measure, regional_district) %>%
+  summarise_all(., sum, na.rm = TRUE) %>%
+  gather("year", "n",3:length(.)) %>%
+  left_join(.,pop, by = c("regional_district","year")) %>%
+  dplyr::rename(.,'pop' = 'n.y') %>%
+  dplyr::rename('n' = 'n.x') %>%
+  filter(year > 2006) %>%
+  mutate(unit.per.cap = n / pop)
+
+## do a basic graph to check it out
+ggplot(pfp_data, aes(year, n , fill = measure)) +
+      geom_bar(stat = "identity",position = "dodge") +
+      labs(title = "Absolute collection per person",
+         x = "Year",
+         y = "Total Tubskids Collected") +
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5),
+              legend.position = "none")
+
+```
+
+The number of tubskids (raw data) collecte per year is continuing to increase.
+
+```{r, include = TRUE, echo = FALSE}
+# calculate the provincial average
+bc_units_per_cap_yr <- pfp_data %>%  # per yr
+      na.omit() %>%
+      group_by(year, measure) %>%
+      summarise(BCave = mean(unit.per.cap))
+
+bc_units_per_cap <- pfp_data %>%     # all years
+      na.omit() %>%
+      group_by(measure) %>%
+      summarise(BCave = mean(unit.per.cap))
+
+regional_units_per_cap_yr <- pfp_data %>%
+      na.omit() %>%
+      group_by(year, measure, regional_district) %>%
+      summarise(ave = mean(unit.per.cap))
+
+regional_units_per_cap <- pfp_data %>%
+      na.omit() %>%
+      group_by(measure, regional_district) %>%
+      summarise(ave = mean(unit.per.cap))
+
+# join the regional and prov. ave data and calculate the difference
+diff.df <-left_join(regional_units_per_cap,
+                    bc_units_per_cap,
+                    by = c('measure')) %>%
+  mutate(delta = ave - BCave,
+         response = ifelse(delta < 0, "below ave", "above ave"))
+
+# join the regional and prov. ave data and calculate the difference per year
+diff.df.yr <-left_join(regional_units_per_cap_yr,
+                       bc_units_per_cap_yr,
+                       by = c('measure','year')) %>%
+  mutate(delta = ave - BCave,
+         response = ifelse(delta < 0,
+                           "below ave", "above ave"))
+
+# Diverging Barcharts ( all years combined )
+p_dif <- ggplot(diff.df, aes(x = regional_district,
+                             y = delta,label = delta)) +
+      facet_wrap(~measure)+
+      geom_point()+
+      geom_bar(stat = 'identity',
+           aes(fill = response), width =.5)  +
+      scale_fill_manual(name = "Mileage",
+                    labels = c("Above Average", "Below Average"),
+                    values = c("above ave" = "#00ba38",
+                               "below ave" = "#f8766d")) +
+      labs(title = "Regional difference from the average BC
+                              units per capita recycling", y = " Difference from BC Ave") +
+      coord_flip() #+
+
+p_dif
+
+```
+
+Regional differences in pfp units per person 
+
+```{r, include = TRUE, echo = FALSE}
+p_dif_yr <- ggplot(diff.df.yr, aes(x = regional_district,
+                             y = delta,label = delta)) +
+  facet_wrap(~year)+
+  geom_point()+
+  geom_bar(stat = 'identity',
+           aes(fill = response), width =.5)  +
+  scale_fill_manual(name = "Mileage",
+                    labels = c("Above Average", "Below Average"),
+                    values = c("above ave" = "#00ba38",
+                               "below ave" = "#f8766d")) +
+  labs(title = "Regional difference from the average BC
+                              units per capita recycling", y = " Difference from BC Ave") +
+  coord_flip() + theme(legend.position = "none") #+
+
+p_dif_yr
+
+```
+
+### Finance data (pfp)
+
+```{r, echo = FALSE, include = TRUE}
+finance <- all.finance %>% filter(type == 'pfp')
+
+pfp.fdata <-finance %>%
+  dplyr::select(-c(organization, type)) %>%
+  gather("year", "n", 2:length(.)) %>%
+  mutate(n.m = n/1000000)
+
+to.keep <- c("Expenditure-Total","Revenue-Total",
+             "Expenditure-Education and Printed Materials",
+             "Balance")
+
+sum.fdata <- pfp.fdata %>%
+      group_by(measure, year) %>%
+      summarise(total = sum(n.m, na.rm = TRUE)) %>%
+      filter(measure %in% to.keep)
+
+# Does spending more on consumer awareness decrease unclaimed deposits
+ggplot(sum.fdata, aes(year, total, fill = measure)) +
+      geom_bar(stat="identity",position="dodge") +
+      labs(title="PFP Recycling Expenditure and Revenue",
+          x = "Year",
+          y = " Amount ($1,000,000)") +
+      theme(axis.text.x = element_text(angle = 90))
+
+### possible to dig a bit deeper into this
+ggplot(sum.fdata, aes(year, total)) +
+      facet_wrap(~measure)+
+      geom_bar(stat="identity",position="dodge") +
+      labs(title="PFP Recycling Expenditure and Revenue",
+       x = "Year",
+       y = " Amount ($1,000,000)") +
+      theme(axis.text.x = element_text(angle = 90))
+
+# expenditure is very very low and not worth reporting.
+#head(sum.fdata)
+
+#sum.fdata %>% filter(measure == "Expenditure-Education and Printed Materials")
+
+```
+
+### Units moved (pfp)
+
+```{r, include = TRUE, echo = FALSE}
+
+pfp_units <- all.units %>% filter(type == 'pfp')
+
+udata <- pfp_units %>%
+  select(-c(organization, type)) %>%
+  gather("year", "n",2:length(.)) %>%
+  mutate(n.m = n/1000000)
+
+#unique(udata$measure)
+
+# summarise per year
+sum.udata <- udata %>%
+      group_by(measure,year) %>%
+      summarise(total = sum(n.m,na.rm = TRUE)) %>%
+      filter(!(measure == "All HHW Collected (Litres)"))
+
+ggplot(sum.udata, aes(year, total, fill = measure)) +
+      geom_bar(stat = "identity", position = "dodge") +
+      labs(title = "Recycled Units Returned and Sold",
+          x = "Year",
+          y = "Total no. (millions)") +
+      theme(axis.text.x = element_text(angle = 90),
+            legend.position = 'none')
+
+# split into different metrics (paint / aersol/ non aersol)
+
+
+```
+This requires more break down and digging. 
+
+## 6) Pharma (2000 - 2017)
+
+Note no finance data is availble for the pharma. dataset. 
+
+### Regional data 
+
+```{r, include = TRUE, echo = TRUE}
+
+pharm_recovery <- all.regions %>% filter(type == "pharm")
+
+ph_data <- pharm_recovery %>%
+  select (-c(organization,type)) %>%
+  dplyr::filter(!regional_district == '') %>%
+  group_by(measure, regional_district) %>%
+  summarise_all(., sum, na.rm = TRUE) %>%
+  gather("year", "total",3:length(.)) %>%
+  filter(year > 2007)
+
+# note units only have data from 2008 - 2012
+units.per.cap <- ph_data %>%
+  filter(measure == 'Absolute Collection-Number of Containers-' )
+weight.per.cap <-  ph_data %>%
+  filter(measure == 'Absolute Collection-Weight Collected (kg)-' )
+
+# Add population data set 
+ph_data <- left_join(weight.per.cap, pop,
+                     by = c("regional_district","year")) %>%
+  mutate(weight.per.cap = total / n)
+
+# calculate the provincial average
+bc.weight.per.cap <- ph_data %>%
+  na.omit() %>%
+  group_by(year) %>%
+  summarise(bc_ave = mean(weight.per.cap))
+
+regional.weight.per.cap <- ph_data %>%
+  na.omit() %>%
+  group_by(year,regional_district) %>%
+  summarise(ave = mean(weight.per.cap))
+
+# join the regional and prov. ave data and calculate the difference
+diff_df <- regional.weight.per.cap %>%
+  left_join(.,bc.weight.per.cap, by = 'year') %>%
+  mutate(delta = ave-bc_ave) %>%
+  mutate(response = ifelse(delta < 0,"below", "above")) %>%
+  mutate(response = ifelse(delta == 0,"No data", response))
+
+# Diverging barcharts
+ggplot(diff_df, aes(x = regional_district,
+                    y = delta,
+                    label= delta)) +
+  facet_wrap(~year) +
+  geom_bar(stat='identity', aes(fill=response), width=.5)  +
+  scale_fill_manual(name="Mileage",
+                    labels = c("Above Average", "Below Average", "No Data"),
+                    values = c("above"="#00ba38", "below"="#f8766d", "no data" = 'grey')) +
+  labs(title= "Difference from BC average BC") +
+  coord_flip()
+
+# Diverging Barcharts (all years)
+ggplot(diff_df, aes(x = regional_district,
+                    y = delta,
+                    label = delta)) +
+  geom_bar(stat = 'identity', aes(fill = response), width = .5)  +
+  scale_fill_manual(name = "Mileage",
+                    labels = c("Above Average",
+                               "Below Average",
+                               "No data"),
+                    values = c("above" = "#00ba38",
+                               "below" = "#f8766d",
+                               "no data" = 'grey')) +
+  labs(title = "Regional difference from the average BC units per capita recycling") +
+  coord_flip()
+
+```
+
+NOte these are showing weights per capita not total numbers. 
+
+
+### Units moved (Pharm) 
+
+```{r, include = TRUE, echo = FALSE}
+# pharm units moved -----------------------------------
+pharm_units <- all.units %>% filter(type == "pharm")
+
+udata <- pharm_units %>%
+  select(-c(organization, type)) %>%
+  gather("year", "n",2:length(.)) %>%
+  mutate(n.t = n/1000)
+
+to.keep = "Absolute Collection-Weight of Unused/Expired Medications Returned (kg)"
+
+# summarise per year
+sum.udata <- udata %>%
+  group_by(measure,year) %>%
+  summarise(total = sum(n.t, na.rm = TRUE)) %>%
+  filter(measure %in% to.keep)
+
+# make a pretty graph
+ggplot(sum.udata, aes(year, total, fill = measure)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Weight of unused/expired medication returned",
+       x = "Year", y = "Total weight (1000's kgs)") +
+  theme(legend.position = "none",
+            axis.text.x = element_text(angle = 90))
+
+
+```
+
+
+
+## 7) Packaging and Printed Paper (ppp)
+### Regional data 
+### Finance data (ppp)
+### Units moved (ppp)
