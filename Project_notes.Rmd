@@ -984,7 +984,7 @@ ggplot(sum.udata, aes(year, total, fill = measure)) +
 ## 7) Packaging and Printed Paper (ppp)
 ### Regional data
 
-```{r include = TRUE, echo = TRUE}
+```{r include = TRUE, echo = FALSE}
 
 ppp_recovery <- all.regions %>% filter (type == "ppp")
 
@@ -1046,7 +1046,7 @@ ggplot(diff_df, aes(x = regional_district,
 
 ### Finance data (ppp)
 
-```{r, include = TRUE, echo = TRUE}
+```{r, include = TRUE, echo = FALSE}
 ppp_finance <- all.finance %>% filter(type == 'ppp') 
 
 ppp.fdata <- ppp_finance %>%
