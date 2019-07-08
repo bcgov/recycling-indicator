@@ -493,10 +493,15 @@ ggplot(sum.udata, aes(year, total, fill = measure)) +
 
 
 ###############################################################
+
+# 3) Tire data
 # TIRE ---------------------------------------------------
 
 # financial data -------------------------------------
-tire.fdata <-tire_financial %>%
+finance <- all.finance %>% filter(type == 'tire')
+
+tire.fdata  <- finance %>%
+  dplyr::select(-c(organization, type)) %>%
   gather("year", "n", 2:length(.)) %>%
   mutate(n.m = n/1000000)
 
@@ -511,18 +516,22 @@ sum.fdata <- tire.fdata %>%
       filter(measure %in% to.keep)
 
 # Does spending more on consumer awareness decrease unclaimed deposits
-ggplot(sum.fdata, aes(year, total, fill = measure)) +
-      geom_bar(stat="identity",position="dodge") +
-      labs(title="Tire Recycling Expenditure and Revenue",
-            x = "Year",
-            y = " Amount ($1,000,000)") +
-      theme(axis.text.x = element_text(angle = 90))
+#ggplot(sum.fdata, aes(year, total, fill = measure) +
+#         geom_bar() + #stat = "identity", position="dodge") +
+#         labs(title = "Tire Recycling Expenditure and Revenue",
+#              x = "Year",
+#              y = " Amount ($1,000,000)") +
+#         theme(axis.text.x = element_text(angle = 90)))
 
 ### possible to dig a bit deeper into this
 
 
 # Tire units moved -----------------------------------
+
+units <- all.units %>% filter(type == 'tire')
+
 udata <- tire_units %>%
+      select(-c(organization, type)) %>%
       gather("year", "n",2:length(.)) %>%
       mutate(n.m = n/1000000)
 
