@@ -31,12 +31,21 @@ pop.0 <- read.csv(paste('data','Population_Estimates.csv',sep = "/"),
 pop <- pop.0 %>%
   mutate(regional_district = gsub("-", " ", Regional.District),
          n = Total, year = as.character(Year)) %>%
-  select(-c('ï..','Gender','Regional.District','Total',"Year"))
+  select(-c('ï..','Gender','Regional.District','Total',"Year")) %>%
+  mutate(regional_district = ifelse(regional_district == "Powell River",
+                                    "Qathet",
+                                    ifelse(regional_district == "Stikine",
+                                           "Kitimat Stikine",
+                                           ifelse(regional_district == "Comox Valley",
+                                                  "Comox Strathcona",
+                                                  ifelse(regional_district == "Strathcona",
+                                                         "Comox Strathcona",
+                                                         regional_district)))))
 
 
-# STILL TO DO : Add regional pop data ie Northern Rockies as this is
-# throwing out the oil indicators
-
+ pop <- pop %>%
+   group_by(regional_district, year) %>%
+   summarize(n = sum(n))
 
 #######################################################################
 
@@ -52,8 +61,6 @@ source(paste('scratch','clean_readxl.R',sep = '/'))
 # Beverage ------------------------------------------------------
 
 regions <- all.regions %>% filter(type == 'bev')
-
-# still need to fix comox / strathcona in all.regions
 
 priority <- regions %>%
   dplyr::filter(measure %in%
@@ -81,7 +88,7 @@ ggplot(units.per.cap, aes(year,n.pop)) +
   geom_bar(stat = "identity",position = "dodge") +
   labs(title = "Regional Units Recycled per capita",
        x = "Year", y = "units per capita") +
-  theme(axis.text.x = element_text(angle = 90))
+  theme(axis.text.x = element_text(angle = 90,vjust=0.5))
 
 ## weight per capita
 ggplot(weight.per.cap,aes(year,n.pop)) +
@@ -149,6 +156,11 @@ bc <- bc_bound() # plot(st_geometry(bc))
 rd <- regional_districts()
 rd.wgs<-st_transform(rd,4326) # convert to lat longs
 
+?combine_nr_rd
+
+nr <- combine_nr_rd(class = 'sf')
+
+unique(nr$ADMIN_AREA_NAME)
 # join the abbreviations to the data
 upc <- left_join(units.per.cap, rdKey, by = "Region")
 
@@ -310,7 +322,8 @@ ggplot(pdata, aes(year, n, fill = measure)) +
       geom_bar(stat = "identity",position = "dodge") +
       labs(title = "Absolute collection (kg/litres) per person",
            x = "Year",
-           y = "Collection (kg) per person")
+           y = "Collection (kg) per person")+
+  theme(axis.text.x = element_text(angle = 90,vjust = 0.5))
 
 # used oil is order of magnitude more!
 pdata.1 <- pdata %>% dplyr::filter(!measure == 'oil_lt_pp')
@@ -324,12 +337,6 @@ ggplot(pdata.1,aes(year, n, fill = measure)) +
            y = "Collection (kg) per person")
 
 ####################################################
-
-## UP TO HERE IN RMD SUMMARY  revamp
-
-
-#####################################################
-
 
 # calculate the provincial average
 bc_units_per_cap_yr <- pdata %>%  # per yr
@@ -367,10 +374,21 @@ diff.df.yr <-left_join(regional_units_per_cap_yr,
                     response = ifelse(delta < 0,
                           "below ave", "above ave"))
 
-# Diverging Barcharts ( all years combined )
-p_dif <- ggplot(diff.df, aes(x = regional_district,
+# split into oil and non - oil data sets
+
+diff.df.oil <- diff.df %>%
+  filter(measure == "oil_lt_pp")
+diff.df.yr.oil <- diff.df.yr %>%
+  filter(measure == "oil_lt_pp")
+
+diff.df <- diff.df %>%
+  filter(!measure == "oil_lt_pp")
+diff.df.yr <- diff.df.yr %>%
+  filter(!measure == "oil_lt_pp")
+
+# OIL : Diverging Barcharts ( all years combined : oil only )
+p_dif.oil <- ggplot(diff.df.oil, aes(x = regional_district,
                           y = delta,label = delta)) +
-        facet_wrap(~measure)+
         geom_point()+
         geom_bar(stat = 'identity',
                       aes(fill = response), width =.5)  +
@@ -379,9 +397,27 @@ p_dif <- ggplot(diff.df, aes(x = regional_district,
                       values = c("above ave" = "#00ba38",
                                     "below ave" = "#f8766d")) +
                 labs(title = "Regional difference from the average BC
+                              in oil lts per capita recycling", y = " Difference from BC Ave") +
+         coord_flip()
+p_dif.oil
+
+
+# OTHER mEASURES : Diverging Barcharts ( all years combined )
+p_dif <- ggplot(diff.df, aes(x = regional_district,
+                             y = delta,label = delta)) +
+  facet_wrap(~measure)+
+  geom_point()+
+  geom_bar(stat = 'identity',
+           aes(fill = response), width =.5)  +
+  scale_fill_manual(name = "Mileage",
+                    labels = c("Above Average", "Below Average"),
+                    values = c("above ave" = "#00ba38",
+                               "below ave" = "#f8766d")) +
+  labs(title = "Regional difference from the average BC
                               units per capita recycling", y = " Difference from BC Ave") +
-         coord_flip() #+
+  coord_flip() #+
 p_dif
+
 
 # Diverging Barcharts ( per year )
 p_dif_yr <- ggplot(diff.df.yr, aes(x = regional_district,
@@ -403,27 +439,39 @@ p_dif_yr
 
 # get oil financial data -------------------------------------
 
-oil.fdata <-oil_financial %>%
-  gather("year", "n", 3:length(.)) %>%
+finance <- all.finance %>% filter(type == 'oil')
+
+odata <- finance %>%
+  dplyr::select(-c(organization, type)) %>%
+  group_by(measure) %>%
+  summarise_all(., sum, na.rm = TRUE) %>%
+  gather("year", "n", 2:length(.)) %>%
   mutate(n.m = n/1000000)
 
-to.keep <- c("Expenditure-Total","Revenue-Total")
+to.keep <- c("Expenditure-Total","Revenue-Total", "Balance")
 
-sum.fdata <- oil.fdata %>%
+sum.fdata <- odata %>%
   group_by(measure, year) %>%
   summarise(total = sum(n.m,na.rm = TRUE)) %>%
   filter(measure %in% to.keep)
 
 # Does spending more on consumer awareness decrease unclaimed deposits
 ggplot(sum.fdata, aes(year, total, fill = measure)) +
-  geom_bar(stat="identity",position="dodge") +
-  labs(title=" Oil Recycling Expenditure and Revenue", x = "Year", y = " Amount ($1,000,000)")
+  geom_bar(stat="identity", position = "dodge") +
+  labs(title = " Oil Recycling Expenditure and Revenue",
+       x = "Year", y = " Amount ($1,000,000)")+
+  theme(axis.text.x = element_text(angle = 90,vjust = 0.5))
 
 
 # oil units moved -----------------------------------
-udata <- oil_units %>%
-      gather("year", "n",2:length(.)) %>%
-      mutate(n.m = n/1000000)
+
+units <- all.units %>% filter(type == 'oil')
+
+udata <- units %>%
+  dplyr::select(-c(organization, type)) %>%
+  group_by(measure) %>%
+  gather("year", "n", 2:length(.)) %>%
+  mutate(n.m = n/1000000)
 
 # summarise per year
 sum.udata <- udata %>%
@@ -432,12 +480,17 @@ sum.udata <- udata %>%
 
 # make a pretty graph
 ggplot(sum.udata, aes(year, total, fill = measure)) +
-      facet_wrap(~measure) +
-      geom_bar(stat = "identity", position = "dodge") +
-      labs(title = "Recycled Units Returned and Sold",
-          x = "Year", y = "Total no. (millions)")
+  facet_wrap(~measure) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Recycled Units Returned and Sold",
+       x = "Year", y = "Total no. (millions)") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5),
+        legend.position = "none")
 
 ## this needs some more work to split out the data types
+#unique(sum.udata$measure)
+#to.keep <- c("Expenditure-Total","Revenue-Total", "Balance")
+
 
 ###############################################################
 # TIRE ---------------------------------------------------
