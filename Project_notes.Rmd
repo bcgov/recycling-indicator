@@ -42,7 +42,7 @@ Broadly, each of the above indicators has data on 1) quantity of items (kgs/litr
 
 Not all indicators had available data on these three catergories and collection years vary per indicator. 
 
-Some changes to regional district names and associations (merging) was also addressed. 
+Some changes to regional district names and associations (merging) was also addressed. This included updating regional district names (Queen Charlotte skeena to North Coast, Power river to Qathet, joining Comox and Strathcona into a single region)
 
 
 ## Work flow: 
@@ -94,9 +94,22 @@ pop.0 <- read.csv(paste('data','Population_Estimates.csv',sep = "/"),
                 header = TRUE)
 
 pop <- pop.0 %>%
-       mutate(regional_district = gsub("-", " ", Regional.District),
-              n = Total, year = as.character(Year)) %>%
-       select(-c('ï..','Gender','Regional.District','Total',"Year"))
+  mutate(regional_district = gsub("-", " ", Regional.District),
+         n = Total, year = as.character(Year)) %>%
+  select(-c('ï..','Gender','Regional.District','Total',"Year")) %>%
+  mutate(regional_district = ifelse(regional_district == "Powell River",
+                                    "Qathet",
+                             ifelse(regional_district == "Stikine",
+                                           "Kitimat Stikine",
+                             ifelse(regional_district == "Comox Valley",
+                                                  "Comox Strathcona",
+                          ifelse(regional_district == "Strathcona",
+                                                     "Comox Strathcona",
+                                                         regional_district)))))
+
+pop <- pop %>%
+   group_by(regional_district, year) %>%
+   summarize(n = sum(n))
 
 #######################################################################
 
@@ -116,7 +129,7 @@ priority <- regions %>%
       left_join(.,pop, by = c("regional_district","year")) %>%
       dplyr::rename(.,'pop' = 'n.y') %>%
       dplyr::rename('n' = 'n.x') %>%
-      filter(year > 2006)
+      filter(year > 2005)
 
 priority$n.pop = priority$n / priority$pop # this is not working in dplyr version
 
@@ -135,7 +148,7 @@ ggplot(units.per.cap, aes(year,n.pop)) +
       geom_bar(stat = "identity",position = "dodge") +
       labs(title = "Regional Units Recycled per capita",
            x = "Year", y = "units per capita") +
-      theme(axis.text.x = element_text(angle = 90))
+      theme(axis.text.x = element_text(angle = 90,vjust=0.5))
 
 ```
 
@@ -207,7 +220,7 @@ ggplot(diff.df, aes(x = regional_district,
 
 ```
 
-This provides an indication over time for each region for all years 2007-2018.
+This provides an indication over time for each region for all years 2007-2018. This has the advantage of showing the standard error over this time (although appears to be highly influenced by outliers). Perhasp the Comox Strathcona measure needs to be investigated more as appears well below average but may indicate missing data etc.
 
 
 #### Finance data (provincial)
@@ -233,7 +246,9 @@ ggplot(fdata, aes(year, total, fill = measure)) +
 
 ```
 
-There is not a strong correlation between with awareness, may need to adjust this per unit? or check if the awareness expenditure is for multiple programs (ECPOR and BCRCCC). Perhaps a comparison of revenue vs expenditure on education programs should be looked at? 
+This plot is hard to tell if there is not a strong correlation between with financial input into awareness programs and recycling, may need to adjust this per unit? or check if the awareness expenditure is for multiple programs (ECPOR and BCRCCC). 
+
+To summarise this data we plotted Balance vs awareness expenditure: 
 
 ```{r, echo = FALSE, include = TRUE}
 # look at revenue vs education $$
@@ -252,14 +267,15 @@ fdata <-finance %>%
 
 ggplot(fdata, aes(year, total, fill = measure)) +
   geom_bar(stat="identity",position="dodge") +
-  labs(title="Unclaimed deposits and consumer-expenditure",
+  labs(title="Balance and consumer-awareness expenditure",
        x = "Year", y = " Amount ($1,000,000)") +
   theme(axis.text.x = element_text(angle = 90))
 
 ```
-?? not sure what is going on here? 
+?? not sure what is going on here? The pattern is not easy to interpret
 
 #### Units Moved
+Data for units includes earlier years of recycling, although this may not be comparable. 
 Is there a difference in the units moved (recovered or sold over time?)
 
 ```{r, include = TRUE, echo = FALSE}
@@ -302,14 +318,17 @@ ggplot(sum.udata1, aes(x = year, y = RecoveryRate))+
       theme(axis.text.x = element_text(angle = 90))
 
 ```
+Substantial changes in 2007/2008 data may reflect the change in reporting (change from Dec 31 to March 31st reporting for the BCBRC organization)
 
 
 Thoughts on Beverage recycling:
 
+- Patterns in per capita recycling between regions could provide nice comparions. 
+- To complement this further detail could be added (pop up for each regions; ie bar chart with changes over time)
+- Perhaps financial and units moved could be rolled up wth other measures for relative comparisons, unless a specific question is to be address/highlighted.
+
 - Would be nice to add a regional map with data (leaflet - etc)
 - difference maps better than raw values ? Difference to average works with change per year indicated 
-- could present some metrics within graphs (ie non - spatial data sets) 
-- Northern Rockies missing population data - need to pull data from stats Canada per year 
 
 
 # 2) Lubricating Oil, Filters and containers. 
