@@ -224,6 +224,7 @@ rd.names <- rd[,c("ADMIN_AREA_ABBREVIATION","ADMIN_AREA_NAME")]
 
 
 
+
 # Grab the financial data -------------------------------
 
 finance <- all.finance %>% filter(type == 'bev')
@@ -265,7 +266,6 @@ ggplot(fdata, aes(year, total, fill = measure)) +
       theme(axis.text.x = element_text(angle = 90))
 
 # Grab the unit data -------------------------------
-
 units <- all.units %>% filter(type == 'bev')
 
 udata <- units %>%
@@ -306,7 +306,6 @@ ggplot(sum.udata1, aes(x = year, y = RecoveryRate))+
 
 
 ###################################################################################################
-
 ## OIL Lubraicant and Filters ------------------------------
 
 regions <- all.regions %>% filter(type == 'oil')
@@ -314,8 +313,10 @@ regions <- all.regions %>% filter(type == 'oil')
 pdata <- regions %>%
       select(-c(organization, type)) %>%
       filter(!regional_district == '') %>%
+      group_by(measure, regional_district) %>%
+      summarise_all(., sum, na.rm = TRUE) %>%
       gather("year", "n",3:length(.)) %>%
-      filter(year >2009)
+      filter(year > 2009)
 
 ## do a basic graph to check it out
 ggplot(pdata, aes(year, n, fill = measure)) +
@@ -527,7 +528,6 @@ sum.fdata <- tire.fdata %>%
 
 
 # Tire units moved -----------------------------------
-
 units <- all.units %>% filter(type == 'tire')
 
 udata <- tire_units %>%
@@ -561,68 +561,73 @@ ggplot(sum.udata.l, aes(x = year, y = prop.recovered))+
       labs(title="Recycled Units Recovery Rate (%)",
           x = "Year", y = "Recovery Rate %")
 
-## Elect -
-#elect_compile
 
+## Elect -
+
+# regional data set only
+
+elect_compile
 
 
 #########################################################
 # pfp indicator ---------------------------------------
 
-pfp_financial
-pfp_units
+pfp_recovery <- all.regions %>% filter(type == 'pfp')
 
-# extract the raw unit data and add with population and maps....
 pfp_data <- pfp_recovery %>%
-      dplyr::filter(!regional_district == '') %>%
-      gather("year", "total",3:length(.))
+  select(-c(organization,type)) %>%
+  dplyr::filter(!regional_district == '') %>%
+  group_by(measure, regional_district) %>%
+  summarise_all(., sum, na.rm = TRUE) %>%
+  gather("year", "n",3:length(.)) %>%
+  left_join(.,pop, by = c("regional_district","year")) %>%
+  dplyr::rename(.,'pop' = 'n.y') %>%
+  dplyr::rename('n' = 'n.x') %>%
+  filter(year > 2006) %>%
+  mutate(unit.per.cap = n / pop)
 
 ## do a basic graph to check it out
-ggplot(pfp_data, aes(year, total , fill = measure)) +
+ggplot(pfp_data, aes(year, n , fill = measure)) +
       geom_bar(stat = "identity",position = "dodge") +
       labs(title = "Absolute collection per person",
          x = "Year",
          y = "Total Tubskids Collected") +
-      theme(axis.text.x = element_text(angle = 90))
-
-# add population data
-pfpdata <- left_join(pfp_data, pop,
-                by = c("regional_district","year")) %>%
-      mutate(unit.per.cap = total / n)
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5),
+              legend.position = "none")
 
 # calculate the provincial average
-bc_units_per_cap_yr <- pfpdata %>%  # per yr
+bc_units_per_cap_yr <- pfp_data %>%  # per yr
       na.omit() %>%
       group_by(year, measure) %>%
-      summarise(BCave = mean(total))
+      summarise(BCave = mean(unit.per.cap))
 
-bc_units_per_cap <- pfpdata %>%     # all years
+bc_units_per_cap <- pfp_data %>%     # all years
       na.omit() %>%
       group_by(measure) %>%
-      summarise(BCave = mean(total))
+      summarise(BCave = mean(unit.per.cap))
 
-regional_units_per_cap_yr <- pfpdata %>%
+regional_units_per_cap_yr <- pfp_data %>%
       na.omit() %>%
       group_by(year, measure, regional_district) %>%
-      summarise(ave = mean(total))
+      summarise(ave = mean(unit.per.cap))
 
-regional_units_per_cap <- pfpdata %>%
+regional_units_per_cap <- pfp_data %>%
       na.omit() %>%
       group_by(measure, regional_district) %>%
-      summarise(ave = mean(total))
+      summarise(ave = mean(unit.per.cap))
 
 # join the regional and prov. ave data and calculate the difference
 diff.df <-left_join(regional_units_per_cap,
                     bc_units_per_cap,
                     by = c('measure')) %>%
-      mutate(delta = ave - BCave,
+  mutate(delta = ave - BCave,
          response = ifelse(delta < 0, "below ave", "above ave"))
 
 # join the regional and prov. ave data and calculate the difference per year
 diff.df.yr <-left_join(regional_units_per_cap_yr,
                        bc_units_per_cap_yr,
                        by = c('measure','year')) %>%
-      mutate(delta = ave - BCave,
+  mutate(delta = ave - BCave,
          response = ifelse(delta < 0,
                            "below ave", "above ave"))
 
@@ -646,9 +651,12 @@ p_dif
 
 # pfp financial -------------------------------
 
-pfp.fdata <-pfp_financial %>%
-      gather("year", "n", 2:length(.)) %>%
-      mutate(n.m = n/1000000)
+finance <- all.finance %>% filter(type == 'pfp')
+
+pfp.fdata <-finance %>%
+  dplyr::select(-c(organization, type)) %>%
+  gather("year", "n", 2:length(.)) %>%
+  mutate(n.m = n/1000000)
 
 to.keep <- c("Expenditure-Total","Revenue-Total",
              "Expenditure-Education and Printed Materials",
@@ -678,13 +686,18 @@ ggplot(sum.fdata, aes(year, total)) +
 
 # expenditure is very very low and not worth reporting.
 #head(sum.fdata)
+
 sum.fdata %>% filter(measure == "Expenditure-Education and Printed Materials")
 
 
 # pfp units ---------------------------
+
+pfp_units <- all.units %>% filter(type == 'pfp')
+
 udata <- pfp_units %>%
-      gather("year", "n",2:length(.)) %>%
-      mutate(n.m = n/1000000)
+  select(-c(organization, type)) %>%
+  gather("year", "n",2:length(.)) %>%
+  mutate(n.m = n/1000000)
 
 unique(udata$measure)
 
