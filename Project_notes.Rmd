@@ -665,7 +665,26 @@ Electric datasets include a combination of many seperate components including sm
 
 ### Regional data 
 
-... Still to complete graphs 
+```{r, include = TRUE, echo = FALSE}
+## Elect -
+edata <- all.regions %>% filter(type == "elect") %>%
+  select(-c(type)) %>%
+  group_by(organization, measure, regional_district)%>%
+  summarise_all(., sum, na.rm = TRUE) %>%
+  gather("year", "n",4:length(.)) %>%
+  filter(year > 2009)
+
+## do a basic graph to check it out
+ggplot(edata,aes(year, n, fill = measure)) +
+  #facet_wrap(~ measure ) +
+  geom_bar(stat="identity",position="dodge") +
+  labs(title="Absolute collection (raw)",
+       x = "Year",
+       y = "Collection (kg) per person")
+
+```
+
+more work to do on this one...
 
 ## 5) Paints - Flam - Pest (2000 - 2017) 
 

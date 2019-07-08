@@ -566,16 +566,20 @@ ggplot(sum.udata.l, aes(x = year, y = prop.recovered))+
 
 # regional data set only
 
-e_data <- all.regions %>% filter(type == "elect") %>%
+edata <- all.regions %>% filter(type == "elect") %>%
   select(-c(type)) %>%
   group_by(organization, measure, regional_district)%>%
   summarise_all(., sum, na.rm = TRUE) %>%
-  gather("year", "n",3:length(.))
+  gather("year", "n",4:length(.)) %>%
+  filter(year > 2009)
 
-#  filter(year > 2009)
-
-elect_compile
-
+## do a basic graph to check it out
+ggplot(edata,aes(year, n, fill = measure)) +
+  #facet_wrap(~ measure ) +
+  geom_bar(stat="identity",position="dodge") +
+  labs(title="Absolute collection (raw)",
+       x = "Year",
+       y = "Collection (kg) per person")
 
 
 
