@@ -649,6 +649,24 @@ p_dif <- ggplot(diff.df, aes(x = regional_district,
 p_dif
 
 
+p_dif_yr <- ggplot(diff.df.yr, aes(x = regional_district,
+                                   y = delta,label = delta)) +
+  facet_wrap(~year)+
+  geom_point()+
+  geom_bar(stat = 'identity',
+           aes(fill = response), width =.5)  +
+  scale_fill_manual(name = "Mileage",
+                    labels = c("Above Average", "Below Average"),
+                    values = c("above ave" = "#00ba38",
+                               "below ave" = "#f8766d")) +
+  labs(title = "Regional difference from the average BC
+                              units per capita recycling", y = " Difference from BC Ave") +
+  coord_flip() + theme(legend.position = "none") #+
+
+p_dif_yr
+
+
+
 # pfp financial -------------------------------
 
 finance <- all.finance %>% filter(type == 'pfp')
@@ -723,11 +741,16 @@ ggplot(sum.udata, aes(year, total, fill = measure)) +
 
 # Pharm ---------------------------------------------------
 # extract the raw unit data and add with population and maps....
-ph_data <- pharm_recovery %>%
-      dplyr::filter(!regional_district == '') %>%
-      gather("year", "total",3:length(.))
+pharm_recovery <- all.regions %>% filter(type == "pharm")
 
-# break up into weight and units
+ph_data <- pharm_recovery %>%
+  select (-c(organization,type)) %>%
+  dplyr::filter(!regional_district == '') %>%
+  group_by(measure, regional_district) %>%
+  summarise_all(., sum, na.rm = TRUE) %>%
+  gather("year", "total",3:length(.)) %>%
+  filter(year > 2007)
+
 # note units only have data from 2008 - 2012
 units.per.cap <- ph_data %>%
       filter(measure == 'Absolute Collection-Number of Containers-' )
@@ -735,18 +758,18 @@ weight.per.cap <-  ph_data %>%
       filter(measure == 'Absolute Collection-Weight Collected (kg)-' )
 
 ## Units per capita
-ggplot(units.per.cap,aes(year,total)) +
-      #facet_wrap(~ regional_district) +
-      geom_bar(stat = "identity",position = "dodge") +
-      labs(title = "Regional Units Recycled per capita",
-            x = "Year", y = "units per capita")
+#ggplot(units.per.cap,aes(year,total)) +
+#      #facet_wrap(~ regional_district) +
+#      geom_bar(stat = "identity",position = "dodge") +
+#      labs(title = "Regional Units Recycled per capita",
+#            x = "Year", y = "units per capita")
 
 ## weight per capita # raw data are not very informative as metro Van. is much larger
-ggplot(weight.per.cap,aes(year,total)) +
-      facet_wrap(~ regional_district) +
-      geom_bar(stat = "identity",position="dodge") +
-      labs(title = "Regional weight of recycling (tonnes) per capita",
-            x = "Year", y = "weight per cap (tonnes")
+#ggplot(weight.per.cap,aes(year,total)) +
+#      facet_wrap(~ regional_district) +
+#      geom_bar(stat = "identity",position="dodge") +
+#      labs(title = "Regional weight of recycling (tonnes) per capita",
+#            x = "Year", y = "weight per cap (tonnes")
 
 # Add population data set and
 
@@ -766,11 +789,11 @@ regional.weight.per.cap <- ph_data %>%
         summarise(ave = mean(weight.per.cap))
 
 # join the regional and prov. ave data and calculate the difference
-diff_df <- regional.units.per.cap %>%
+diff_df <- regional.weight.per.cap %>%
       left_join(.,bc.weight.per.cap, by = 'year') %>%
       mutate(delta = ave-bc_ave) %>%
       mutate(response = ifelse(delta < 0,"below", "above")) %>%
-      mutate(response = ifelse(delta == 0,"No data",response))
+      mutate(response = ifelse(delta == 0,"No data", response))
 
 # Diverging barcharts
 ggplot(diff_df, aes(x = regional_district,
@@ -800,7 +823,10 @@ ggplot(diff_df, aes(x = regional_district,
   coord_flip()
 
 # pharm units moved -----------------------------------
+pharm_units <- all.units %>% filter(type == "pharm")
+
 udata <- pharm_units %>%
+  select(-c(organization, type)) %>%
   gather("year", "n",2:length(.)) %>%
   mutate(n.t = n/1000)
 
@@ -809,7 +835,7 @@ to.keep = "Absolute Collection-Weight of Unused/Expired Medications Returned (kg
 # summarise per year
 sum.udata <- udata %>%
   group_by(measure,year) %>%
-  summarise(total = sum(n.t,na.rm = TRUE)) %>%
+  summarise(total = sum(n.t, na.rm = TRUE)) %>%
   filter(measure %in% to.keep)
 
 # make a pretty graph
@@ -821,11 +847,10 @@ ggplot(sum.udata, aes(year, total, fill = measure)) +
             axis.text.x = element_text(angle = 90))
 
 
-# ppp regional amount -----------------------------------
 
-ppp_finance
+# ppp regional data ---------------------------------
 
-# add population
+
 ppp_data <- ppp_recovery %>%
       dplyr::filter(!regional_district == '') %>%
       gather("year", "total", 3:length(.)) %>%
