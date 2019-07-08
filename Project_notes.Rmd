@@ -70,9 +70,8 @@ Data exploration points to consider:
 - In Encorp data Comox and Strathcona joined (2007 to 2010), then split into two seperate regions from 2011 onwards. These are recorded seperately for BRCC. 
 - Some data anomolied in Central Coast and Central Kootneys in 2015 were verified in pdf reports and found to be same as pdf report. 
 
-#### Regional data exploration 
+### Regional data exploration 
 
-Note I still need to edit the comox Strathcona regions.
 
 ```{r loadlibs, echo = TRUE, include = FALSE, message = FALSE}
 
@@ -223,7 +222,7 @@ ggplot(diff.df, aes(x = regional_district,
 This provides an indication over time for each region for all years 2007-2018. This has the advantage of showing the standard error over this time (although appears to be highly influenced by outliers). Perhasp the Comox Strathcona measure needs to be investigated more as appears well below average but may indicate missing data etc.
 
 
-#### Finance data (provincial)
+### Finance data (provincial)
 
 ```{r bev finance, include = TRUE, echo =FALSE}
 finance <- all.finance %>% filter(type == 'bev')
@@ -274,7 +273,7 @@ ggplot(fdata, aes(year, total, fill = measure)) +
 ```
 ?? not sure what is going on here? The pattern is not easy to interpret
 
-#### Units Moved
+### Units Moved
 Data for units includes earlier years of recycling, although this may not be comparable. 
 Is there a difference in the units moved (recovered or sold over time?)
 
@@ -331,7 +330,7 @@ Thoughts on Beverage recycling:
 - difference maps better than raw values ? Difference to average works with change per year indicated 
 
 
-# 2) Lubricating Oil, Filters and containers. 
+## 2) Lubricating Oil, Filters and containers. 
 
 Collection broken in regional and temporal data sets from 2010 to 2017 including: 
 
@@ -345,6 +344,8 @@ Data exploration points to consider:
 Temporal and a-spatial data sets include financial, collection sites, units moved, and end fate for products. 
 Collection sites does not look like much change in trends over time?
 Could be opportunity to combine a number of measure (ie beverage together). Comox and Strathcona are treated separately in this analysis. 
+
+### Regional data exploration
 
 ```{r, include = TRUE, echo = FALSE}
 regions <- all.regions %>% filter(type == 'oil')
@@ -503,7 +504,8 @@ p_dif_yr
 
 This might need some more detailed look through to split apart patterns.
 
-## Financial (oil)
+### Financial (oil)
+
 Finance data presented here concentrated on balance (expenditure and revenue). Other financial aspects could be included (ie; break down of expenditure and revenue). Finance data is not split between types of measure (ie oil, antifreeze etc.)
 
 ```{r, include = TRUE, echo = FALSE}
@@ -514,7 +516,7 @@ odata <- finance %>%
   group_by(measure) %>%
   summarise_all(., sum, na.rm = TRUE) %>%
   gather("year", "n", 2:length(.)) %>%
-  mutate(n.m = n/1000000)
+  mutate(n.m = n/1000000) 
 
 to.keep <- c("Expenditure-Total","Revenue-Total", "Balance")
 
@@ -532,7 +534,8 @@ ggplot(sum.fdata, aes(year, total, fill = measure)) +
 
 ```
 
-## Units (Oil)  
+### Units (Oil)  
+
 This data includes bc total values for a number of units measured.
 
 ```{r, include = TRUE, echo = FALSE}
@@ -567,3 +570,86 @@ ggplot(sum.udata, aes(year, total, fill = measure)) +
 ```
 This needs some more refining as the type of measures are not equivalent for all of the types (oil, containers, oil filters etc.) For example the output options include ```r unique(sum.udata$measure) ```
 
+General thoughts on oil dataset 
+.....
+
+## 3) Tires
+The tire set only contains financial and unit data. No regional data is provided. 
+
+### Finance data (tires)
+```{r, echo = FALSE, include = TRUE}
+
+finance <- all.finance %>% filter(type == 'tire')
+
+tire.fdata  <- finance %>%
+  dplyr::select(-c(organization, type)) %>%
+  gather("year", "n", 2:length(.)) %>%
+  mutate(n.m = n/1000000) %>%
+  filter(year > 2006)
+
+to.keep <- c("Expenditure-Total","Revenue-Total",
+             "Expenditure-Communications & Education",
+             "Expenditure-Program Incentives",
+             "Balance")
+
+sum.fdata <- tire.fdata %>%
+      group_by(measure,year) %>%
+      summarise(total = sum(n.m,na.rm = TRUE)) %>%
+      filter(measure %in% to.keep)
+
+# Does spending more on consumer awareness decrease unclaimed deposits
+#ggplot(sum.fdata, aes(year, total, fill = measure) +
+#         geom_bar(stat = "identity", position="dodge") +
+#         labs(title = "Tire Recycling Expenditure and Revenue",
+#              x = "Year",
+#              y = " Amount ($1,000,000)") +
+#         theme(axis.text.x = element_text(angle = 90)))
+
+```
+This might need a bit more digging into to see the patterns 
+
+### Units (tires)
+
+The type of units aer broken into many subsets: 
+```{r, include = TRUE, echo = FALSE}
+
+units <- all.units %>% filter(type == 'tire')
+
+udata <- tire_units %>%
+      select(-c(organization, type)) %>%
+      gather("year", "n",2:length(.)) %>%
+      mutate(n.m = n/1000000)
+
+to.keep <- c("Total Sold", "Total Collected")
+
+sumd <- udata %>% group_by(measure)%>% summarise(no. = n())
+print(sumd)
+```
+
+```{r}
+# summarise per year
+sum.udata <- udata %>%
+      group_by(measure,year) %>%
+      summarise(total = sum(n.m,na.rm = TRUE)) %>%
+      filter(measure %in% to.keep)
+
+# make a pretty graph
+ggplot(sum.udata, aes(year, total, fill = measure)) +
+      geom_bar(stat = "identity", position = "dodge") +
+      labs(title = "Recycled Units Returned and Sold",
+           x = "Year",
+           y = "Total no. (millions)") +
+      theme(axis.text.x = element_text(angle = 90,vjust = 0.5))
+
+sum.udata.l <- sum.udata %>%
+      spread(measure, total) %>%
+      mutate(prop.recovered = `Total Collected`/`Total Sold`)
+
+ggplot(sum.udata.l, aes(x = year, y = prop.recovered))+
+      geom_point() +
+      ylim(0,1) +
+      labs(title="Recycled Units Recovery Rate (%)",
+          x = "Year", y = "Recovery Rate %")+ 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5))
+
+```
