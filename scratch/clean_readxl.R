@@ -4,6 +4,7 @@ library(dplyr)
 library(tidyr)
 library(envreportutils)
 library(stringr)
+library(purrr)
 
 #excel_file <- file.path(
 #  soe_path("Operations ORCS/Data - Working/sustainability/EPR"),
@@ -366,12 +367,37 @@ all.finance <- bind_rows(financial, oil_financial, tire_financial,
 all.regions <- bind_rows(priority_raw, recovery_pp, pfp_recovery,
                          elect_compile, ppp_recovery, pharm_recovery)
 
-## still to fix this bit
-r.to.fix <- c("Comox", "Strathcona","Skeena-Queen Charlotte","Powell River")
+# Update the regional districts  names to most current
+all.regions <- all.regions %>%
+  mutate(regional_district = ifelse(regional_district == "Comox",
+                                    "Comox Valley",
+                             ifelse(regional_district == "Metro",
+                                    "Metro Vancouver",
+                             ifelse(regional_district == "Strathcona",
+                                    "Comox Strathcona",
+                             ifelse(regional_district == " Queen Charlotte",
+                                     "Skeena Queen Charlotte",
+                             ifelse(regional_district == "Stikine",
+                                           "Kitimat Stikine",
+                             ifelse(regional_district == "Person Kitimat Stikine",
+                                           "Kitimat Stikine",
+                             ifelse(regional_district == "Powell River",
+                                           "Qathet",
+                                     regional_district))))))))
 
-SC.data <- all.regions %>%
-      filter(regional_district %in% r.to.fix)
+all.regions <- all.regions %>%
+  mutate(regional_district = ifelse(regional_district == "Comox Valley",
+                            "Comox Strathcona",
+                            ifelse(regional_district == "Skeena Queen Charlotte",
+                                   "North Coast", regional_district)))
 
+# map across all the columns
+#sort(unique(all.regions$regional_district))
+
+# still to fix the multiple columns with Comox Srathcona
+#xx <- all.regions %>%
+#  group_by(organization, type, regional_district, measure) %>%
+#      summarise_('T1' = (sum(all.regions$2000',na.rm = TRUE)))
 
 
 all.units <- bind_rows(units, oil_units, tire_units, pfp_units,
