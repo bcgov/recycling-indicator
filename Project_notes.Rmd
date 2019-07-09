@@ -1031,7 +1031,7 @@ ppp_data <- ppp_recovery %>%
   dplyr::filter(!regional_district == '') %>%
   gather("year", "total", 3:length(.)) %>%
   left_join(., pop, c("regional_district", "year")) %>%
-  mutate(weight.per.cap = total / n)
+  mutate(weight.per.cap = total / pop)
 
 # calculate the provincial average
 bc.weight.per.cap <- ppp_data %>%
@@ -1065,7 +1065,22 @@ ggplot(diff_df, aes(x = regional_district,
   theme(legend.position = "none")
 
 # Diverging Barcharts (all years)
-ggplot(diff_df, aes(x = regional_district,
+bc.weight.per.cap_summary <- ppp_data %>%
+  na.omit() %>%
+  summarise(bc_ave = mean(weight.per.cap))
+
+regional.weight.per.cap_summary <- ppp_data %>%
+  na.omit() %>%
+  group_by(regional_district) %>%
+  summarise(ave = mean(weight.per.cap))
+
+# join the regional and prov. ave data and calculate the difference
+diff_df_summary <- regional.weight.per.cap_summary %>%
+  mutate(delta = ave - bc.weight.per.cap_summary$bc_ave,
+         response = ifelse(delta < 0,"below", "above")) %>%
+  mutate(response = ifelse(delta == 0,"No data",response))
+
+ggplot(diff_df_summary, aes(x = regional_district,
                     y = delta,
                     label = delta)) +
   geom_bar(stat = 'identity', aes(fill = response), width = .5)  +
