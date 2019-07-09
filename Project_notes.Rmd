@@ -638,7 +638,7 @@ This might need a bit more digging into to see the patterns
 The type of units aer broken into many subsets: 
 
 ```{r, include = TRUE, echo = FALSE}
-units <- all.units %>% filter(type == 'tire')
+tire_units <- all.units %>% filter(type == 'tire')
 
 udata <- tire_units %>%
       select(-c(organization, type)) %>%
