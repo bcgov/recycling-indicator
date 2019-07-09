@@ -39,13 +39,13 @@ data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to r
 # https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx
 # manual export of population per regional district (2000 - 2018) and store in data folder
 
-pop.0 <- read.csv(paste('data','Population_Estimates.csv',sep = "/"),
+pop.0 <- read.csv(file.path(data.dir,'Population_Estimates.csv'),
                   header = TRUE)
 
 pop <- pop.0 %>%
   mutate(regional_district = gsub("-", " ", Regional.District),
          n = Total, year = as.character(Year)) %>%
-  select(-c('ï..','Gender','Regional.District','Total',"Year")) %>%
+  select(-c('X','Gender','Regional.District','Total',"Year")) %>%
   mutate(regional_district = ifelse(regional_district == "Powell River",
                                     "Qathet",
                                     ifelse(regional_district == "Stikine",
@@ -63,13 +63,13 @@ pop <- pop %>%
 
 #######################################################################
 
-source(paste('scratch','clean_readxl.R',sep = '/'))
+# source(paste('scratch','clean_readxl.R',sep = '/'))
 
 ##or
 
-#all.finance <- read.csv(paste('data','all.finance.csv',sep = "/"), header = TRUE)
-#all.regions <- read.csv(paste('data','all.regions.csv',sep = "/"), header = TRUE)
-#all.units <- read.csv(paste('data','all.units.csv',sep = "/"), header = TRUE)
+all.finance <- read.csv(file.path('data','all.finance.csv'))
+all.regions <- read.csv(file.path('data','all.regions.csv'))
+all.units <- read.csv(file.path('data','all.units.csv'))
 
 
 # Beverage ------------------------------------------------------
