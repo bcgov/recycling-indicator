@@ -403,6 +403,7 @@ all.regions <- all.regions %>%
 all.units <- bind_rows(units, oil_units, tire_units, pfp_units,
                        pharm_units)
 
+dir.create("data", showWarnings = FALSE)
 write.csv(all.finance, paste('data', "all.finance.csv", sep = "/"),
           row.names = FALSE )
 
