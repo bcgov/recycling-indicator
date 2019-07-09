@@ -44,7 +44,7 @@ ncols_from_range <- function(range) {
 
 read_bevs_financial <- function(file, range, org) {
   cols <- ncols_from_range(range)
-  read_excel(excel_file, sheet = "Bevs(2000-2017)",
+  read_excel(file, sheet = "Bevs(2000-2017)",
              range = range,
              col_types = c("text", "skip", rep("numeric", cols - 2)),
              col_names = c("measure", "foo",
@@ -57,7 +57,7 @@ read_bevs_financial <- function(file, range, org) {
 
 read_bevs_units <- function(file, range, org) {
   cols <- ncols_from_range(range)
-  read_excel(excel_file, sheet = "Bevs(2000-2017)",
+  read_excel(file, sheet = "Bevs(2000-2017)",
              range = range,
              col_types = c("text", "skip", rep("numeric", cols - 2)),
              col_names = c("measure", "foo",
@@ -69,7 +69,7 @@ read_bevs_units <- function(file, range, org) {
 
 read_bevs_recovery_raw <- function(file, range,org) {
   cols <- ncols_from_range(range)
-  read_excel(excel_file, sheet = "Bevs(2000-2017)",
+  read_excel(file, sheet = "Bevs(2000-2017)",
              range = range,
              col_types = c("text", "text", rep("numeric", cols - 2)),
              col_names = c("measure", "regional_district",
@@ -109,7 +109,7 @@ priority_raw <- rbind(encorp_priority_raw, bc_brewers_priority_raw )
 
 read_oil_recovery <- function(file, range,type) {
   cols <- ncols_from_range(range)
-read_excel(excel_file, sheet = "Oil(2003-2017) ",
+read_excel(file, sheet = "Oil(2003-2017) ",
                range = range,
                col_types = c("text", rep("numeric", cols - 1)),
                col_names = c("regional_district",
@@ -124,7 +124,7 @@ read_excel(excel_file, sheet = "Oil(2003-2017) ",
 
 read_oil_financial <- function(file, range) {
   cols <- ncols_from_range(range)
-  read_excel(excel_file, sheet = "Oil(2003-2017) ",
+  read_excel(file, sheet = "Oil(2003-2017) ",
              range = range,
              col_types = c("text", rep("numeric", cols - 1)),
              col_names = c("measure",
@@ -136,7 +136,7 @@ read_oil_financial <- function(file, range) {
 
 read_oil_units <- function(file, range, org) {
   cols <- ncols_from_range(range)
-read_excel(excel_file, sheet = "Oil(2003-2017) ",
+read_excel(file, sheet = "Oil(2003-2017) ",
              range = range,
              col_types = c("text", rep("numeric", cols - 1)),
              col_names = c("measure",
@@ -165,7 +165,7 @@ oil_units <- read_oil_units(excel_file, "B154:Q163")
 
 read_tire_units <- function(file, range) {
     cols <- ncols_from_range(range)
-    read_excel(excel_file, sheet = "Tires(2007-2017)",
+    read_excel(file, sheet = "Tires(2007-2017)",
                range = range,
                col_types = c("text", rep("numeric", cols - 1)),
                col_names = c("measure",
@@ -177,7 +177,7 @@ read_tire_units <- function(file, range) {
 
 read_tire_financial <- function(file, range) {
   cols <- ncols_from_range(range)
-  read_excel(excel_file, sheet = "Tires(2007-2017)",
+  read_excel(file, sheet = "Tires(2007-2017)",
              range = range,
              col_types = c("text", rep("numeric", cols - 1)),
              col_names = c("measure",
@@ -197,7 +197,7 @@ tire_units <- read_tire_units(excel_file,"B39:M49")
 
 read_pfp_recovery <- function(file, range) {
   cols <- ncols_from_range(range)
-  read_excel(excel_file, sheet = "Paints-Flam-Pest(2000-2017)",
+  read_excel(file, sheet = "Paints-Flam-Pest(2000-2017)",
              range = range,
              col_types = c("text", "text", rep("numeric", cols - 2)),
              col_names = c("measure_long","foo",
@@ -215,7 +215,7 @@ read_pfp_recovery <- function(file, range) {
 
 read_pfp_financial <- function(file, range) {
   cols <- ncols_from_range(range)
-  read_excel(excel_file, sheet = "Paints-Flam-Pest(2000-2017)",
+  read_excel(file, sheet = "Paints-Flam-Pest(2000-2017)",
              range = range,
              col_types = c("text", "text", rep("numeric", cols - 2)),
              col_names = c("measure","foo",
@@ -269,7 +269,7 @@ pfp_units <- read_pfp_units(excel_file,"B74:U87")
 
 read_elect_region <- function(file, range, type) {
   cols <- ncols_from_range(range)
-  read_excel(excel_file, sheet = "Elect(2007-2017)",
+  read_excel(file, sheet = "Elect(2007-2017)",
                  range = range,
                  col_types = c("text", "text", rep("numeric", cols - 2)),
                  col_names = c("measure", "regional_district",
@@ -294,7 +294,7 @@ elect_compile <- rbind(elect_CESA, elect_smoke, elect_thermo,
 
 read_pharm_recovery <- function(file, range) {
   cols <- ncols_from_range(range)
-  read_excel(excel_file, sheet = "Pharm(2000-2017)",
+  read_excel(file, sheet = "Pharm(2000-2017)",
              range = range,
              col_types = c("text", "text", rep("numeric", cols - 2)),
              col_names = c("measure", "regional_district",
@@ -313,7 +313,7 @@ read_pharm_recovery <- function(file, range) {
 
 read_pharm_units <- function(file, range) {
   cols <- ncols_from_range(range)
-  read_excel(excel_file, sheet = "Pharm(2000-2017)",
+  read_excel(file, sheet = "Pharm(2000-2017)",
              range = range,
              col_types = c("text", "text", rep("numeric", cols - 2)),
              col_names = c("measure", "foo",
@@ -332,7 +332,7 @@ pharm_units <- read_pharm_units(excel_file,"B50:U51")
 
 read_ppp_recovery <- function(file, range) {
   cols <- ncols_from_range(range)
-  read_excel(excel_file, sheet = "PPP(2014-2017)",
+  read_excel(file, sheet = "PPP(2014-2017)",
              range = range,
              col_types = c("text", rep("numeric", cols - 1)),
              col_names = c("regional_district",
@@ -345,7 +345,7 @@ read_ppp_recovery <- function(file, range) {
 
 read_ppp_financial <- function(file, range) {
   cols <- ncols_from_range(range)
-  read_excel(excel_file, sheet = "PPP(2014-2017)",
+  read_excel(file, sheet = "PPP(2014-2017)",
              range = range,
              col_types = c("text", rep("numeric", cols - 1)),
              col_names = c("measure",
