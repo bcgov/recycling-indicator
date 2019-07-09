@@ -721,11 +721,9 @@ pfp_data <- pfp_recovery %>%
   select(-c(organization,type)) %>%
   dplyr::filter(!regional_district == '') %>%
   group_by(measure, regional_district) %>%
-  summarise_all(., sum, na.rm = TRUE) %>%
+  summarise_all(sum, na.rm = TRUE) %>%
   gather("year", "n",3:length(.)) %>%
-  left_join(.,pop, by = c("regional_district","year")) %>%
-  dplyr::rename(.,'pop' = 'n.y') %>%
-  dplyr::rename('n' = 'n.x') %>%
+  left_join(pop, by = c("regional_district","year")) %>%
   filter(year > 2006) %>%
   mutate(unit.per.cap = n / pop)
 
@@ -909,7 +907,7 @@ ph_data <- pharm_recovery %>%
   select (-c(organization,type)) %>%
   dplyr::filter(!regional_district == '') %>%
   group_by(measure, regional_district) %>%
-  summarise_all(., sum, na.rm = TRUE) %>%
+  summarise_all(sum, na.rm = TRUE) %>%
   gather("year", "total",3:length(.)) %>%
   filter(year > 2007)
 
@@ -922,7 +920,7 @@ weight.per.cap <-  ph_data %>%
 # Add population data set 
 ph_data <- left_join(weight.per.cap, pop,
                      by = c("regional_district","year")) %>%
-  mutate(weight.per.cap = total / n)
+  mutate(weight.per.cap = total / pop)
 
 # calculate the provincial average
 bc.weight.per.cap <- ph_data %>%
