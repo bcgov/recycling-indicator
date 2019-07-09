@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and limitations under the License.
 
 ## Load in libraries
-
+library(readr)
 library(dplyr)
 library(ggplot2)
 library(tidyr)
@@ -39,13 +39,13 @@ data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to r
 # https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx
 # manual export of population per regional district (2000 - 2018) and store in data folder
 
-pop.0 <- read.csv(file.path(data.dir,'Population_Estimates.csv'),
-                  header = TRUE)
+pop.0 <- read_csv(file.path(data.dir,'Population_Estimates.csv'))
 
 pop <- pop.0 %>%
-  mutate(regional_district = gsub("-", " ", Regional.District),
-         n = Total, year = as.character(Year)) %>%
-  select(-c('X','Gender','Regional.District','Total',"Year")) %>%
+  mutate(regional_district = gsub("-", " ", `Regional District`),
+         pop = Total,
+         year = as.character(Year)) %>%
+  select(-c('X1','Gender','Regional District','Total',"Year")) %>%
   mutate(regional_district = ifelse(regional_district == "Powell River",
                                     "Qathet",
                                     ifelse(regional_district == "Stikine",
@@ -59,7 +59,7 @@ pop <- pop.0 %>%
 
 pop <- pop %>%
   group_by(regional_district, year) %>%
-  summarize(n = sum(n))
+  summarize(pop = sum(pop))
 
 #######################################################################
 
@@ -67,9 +67,9 @@ pop <- pop %>%
 
 ##or
 
-all.finance <- read.csv(file.path('data','all.finance.csv'))
-all.regions <- read.csv(file.path('data','all.regions.csv'))
-all.units <- read.csv(file.path('data','all.units.csv'))
+all.finance <- read_csv(file.path('data','all.finance.csv'))
+all.regions <- read_csv(file.path('data','all.regions.csv'))
+all.units <- read_csv(file.path('data','all.units.csv'))
 
 
 # Beverage ------------------------------------------------------
@@ -82,13 +82,10 @@ priority <- regions %>%
                     "Absolute Collection-Weight Collected (Tonnes)-")) %>%
   select(-c(organization,type)) %>%
   group_by(measure, regional_district) %>%
-  summarise_all(., sum, na.rm = TRUE) %>%
-  gather("year", "n",3:length(.)) %>%
-  left_join(.,pop, by = c("regional_district","year")) %>%
-  dplyr::rename(.,'pop' = 'n.y') %>%
-  dplyr::rename('n' = 'n.x')
-
-priority$n.pop = priority$n / priority$pop # this is not working in dplyr version
+  summarise_all(sum, na.rm = TRUE) %>%
+  gather("year", "n", 3:length(.)) %>%
+  left_join(pop, by = c("regional_district","year")) %>%
+  mutate(n.pop = n / pop)
 
 # break up into weight and units
 units.per.cap <- priority %>%
