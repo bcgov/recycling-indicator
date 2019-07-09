@@ -12,9 +12,23 @@
 
 ## Load in libraries
 
-x <- c("dplyr","ggplot2","tidyr","stringr","reshape",
-       "bcmaps", "sf", "envreportutils") #raster","sp","sf","rgdal","xlsx","rJava","tibble","mapview","gtools")
-lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(stringr)
+# library(reshape)
+library(bcmaps)
+library(sf)
+library(envreportutils)
+# library(raster)
+# library(sp)
+# library(sf)
+# library(rgdal)
+# library(xlsx)
+# library(rJava)
+# library(tibble)
+# library(mapview)
+# library(gtools)
 
 ## Load  data files
 
