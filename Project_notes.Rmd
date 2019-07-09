@@ -953,7 +953,23 @@ ggplot(diff_df, aes(x = regional_district,
   coord_flip()
 
 # Diverging Barcharts (all years)
-ggplot(diff_df, aes(x = regional_district,
+
+bc.weight.per.cap_summary <- ph_data %>%
+  na.omit() %>%
+  summarise(bc_ave = mean(weight.per.cap))
+
+regional.weight.per.cap_summary <- ph_data %>%
+  na.omit() %>%
+  group_by(regional_district) %>%
+  summarise(ave = mean(weight.per.cap))
+
+# join the regional and prov. ave data and calculate the difference
+diff_df_summary <- regional.weight.per.cap_summary %>%
+  mutate(delta = ave - bc.weight.per.cap_summary$bc_ave) %>%
+  mutate(response = ifelse(delta < 0,"below", "above")) %>%
+  mutate(response = ifelse(delta == 0,"No data", response))
+  
+ggplot(diff_df_summary, aes(x = regional_district,
                     y = delta,
                     label = delta)) +
   geom_bar(stat = 'identity', aes(fill = response), width = .5)  +
