@@ -74,12 +74,14 @@ Data exploration points to consider:
 
 
 ```{r loadlibs, echo = TRUE, include = FALSE, message = FALSE}
-
-x <- c("dplyr", "ggplot2", "tidyr", "stringr", 
-       "bcmaps", "sf", "envreportutils") 
-lapply(x, library, character.only = TRUE)
-rm(x)  
-
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(stringr)
+library(bcmaps)
+library(sf)
+library(envreportutils)
 ```
 
 ```{r loaddata, echo=TRUE,include = FALSE}
@@ -88,66 +90,73 @@ rm(x)
 # BC Pop Stats (ignore and get directly from Stats Can)
 # https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx
 # manual export of population per regional district (2000 - 2018) and store in data folder
+data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")
 
-pop.0 <- read.csv(paste('data','Population_Estimates.csv',sep = "/"),
-                header = TRUE)
+# Read in population data -------------------------------
+# BC Pop Stats (ignore and get directly from Stats Can)
+# https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx
+# manual export of population per regional district (2000 - 2018) and store in data folder
+
+pop.0 <- read_csv(file.path(data.dir,'Population_Estimates.csv'))
 
 pop <- pop.0 %>%
-  mutate(regional_district = gsub("-", " ", Regional.District),
-         n = Total, year = as.character(Year)) %>%
-  select(-c('ï..','Gender','Regional.District','Total',"Year")) %>%
+  mutate(regional_district = gsub("-", " ", `Regional District`),
+         pop = Total,
+         year = as.character(Year)) %>%
+  select(-c('X1','Gender','Regional District','Total',"Year")) %>%
   mutate(regional_district = ifelse(regional_district == "Powell River",
                                     "Qathet",
-                             ifelse(regional_district == "Stikine",
+                                    ifelse(regional_district == "Stikine",
                                            "Kitimat Stikine",
-                             ifelse(regional_district == "Comox Valley",
+                                           ifelse(regional_district == "Comox Valley",
                                                   "Comox Strathcona",
-                          ifelse(regional_district == "Strathcona",
-                                                     "Comox Strathcona",
+                                                  ifelse(regional_district == "Strathcona",
+                                                         "Comox Strathcona",
                                                          regional_district)))))
 
+
 pop <- pop %>%
-   group_by(regional_district, year) %>%
-   summarize(n = sum(n))
+  group_by(regional_district, year) %>%
+  summarize(pop = sum(pop))
 
 #######################################################################
 
-source(paste('scratch','clean_readxl.R',sep = '/'))
-
+# source(paste('scratch','clean_readxl.R',sep = '/'))
+all.finance <- read_csv(file.path('data','all.finance.csv'))
+all.regions <- read_csv(file.path('data','all.regions.csv'))
+all.units <- read_csv(file.path('data','all.units.csv'))
 
 # Beverage ------------------------------------------------------
 
 regions <- all.regions %>% filter(type == 'bev')
 
 priority <- regions %>%
-      dplyr::filter(measure %in%
+  dplyr::filter(measure %in%
                   c("Absolute Collection-Units Collected-",
                     "Absolute Collection-Weight Collected (Tonnes)-")) %>%
-      select(-c(organization,type)) %>%
-      gather("year", "n",3:length(.)) %>%
-      left_join(.,pop, by = c("regional_district","year")) %>%
-      dplyr::rename(.,'pop' = 'n.y') %>%
-      dplyr::rename('n' = 'n.x') %>%
-      filter(year > 2005)
-
-priority$n.pop = priority$n / priority$pop # this is not working in dplyr version
+  select(-c(organization,type)) %>%
+  group_by(measure, regional_district) %>%
+  summarise_all(sum, na.rm = TRUE) %>%
+  gather("year", "n", 3:length(.)) %>%
+  left_join(pop, by = c("regional_district","year")) %>%
+  mutate(n.pop = n / pop)
 
 # break up into weight and units
 units.per.cap <- priority %>%
-      filter(measure == 'Absolute Collection-Units Collected-' )
+  filter(measure == 'Absolute Collection-Units Collected-' )
 weight.per.cap <-  priority %>%
-      filter(measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
+  filter(measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
 
 ``` 
 
 ```{r, include = TRUE}
 # Units per capita
 ggplot(units.per.cap, aes(year,n.pop)) +
-      facet_wrap(~ regional_district) +
-      geom_bar(stat = "identity",position = "dodge") +
-      labs(title = "Regional Units Recycled per capita",
-           x = "Year", y = "units per capita") +
-      theme(axis.text.x = element_text(angle = 90,vjust=0.5))
+  facet_wrap(~ regional_district) +
+  geom_bar(stat = "identity",position = "dodge") +
+  labs(title = "Regional Units Recycled per capita",
+       x = "Year", y = "units per capita") +
+  theme(axis.text.x = element_text(angle = 90,vjust=0.5))
 
 ```
 
@@ -156,11 +165,11 @@ This plot indicates some data anomolies in the 2015 datasets forthe central coas
 ```{r weight per cap, echo=TRUE,include = FALSE}
 #weight per capita
 ggplot(weight.per.cap,aes(year,n.pop)) +
-      facet_wrap(~ regional_district) +
-      geom_bar(stat = "identity",position="dodge") +
-      labs(title = "Regional weight of recycling (tonnes) per capita",
-           x = "Year", y = "weight per cap (tonnes") +
-      theme(axis.text.x = element_text(angle = 90))
+  facet_wrap(~ regional_district) +
+  geom_bar(stat = "identity",position="dodge") +
+  labs(title = "Regional weight of recycling (tonnes) per capita",
+       x = "Year", y = "weight per cap (tonnes") +
+  theme(axis.text.x = element_text(angle = 90))
 
 ```
 
@@ -206,17 +215,32 @@ ggplot(diff.df, aes(x = regional_district,
 
 ```{r, echo= FALSE, include = TRUE}
 # Diverging Barcharts (all years)
-ggplot(diff.df, aes(x = regional_district,
+bc.units.per.cap_summary <- units.per.cap %>%
+  na.omit() %>%
+  summarise(bc_ave = mean(n.pop))
+
+regional.units.per.cap_summary <- units.per.cap %>%
+  na.omit() %>%
+  group_by(regional_district) %>%
+  summarise(ave = mean(n.pop))
+
+# join the regional and prov. ave data and calculate the difference
+diff.df.summary <- regional.units.per.cap_summary %>%
+  mutate(delta = ave - bc.units.per.cap_summary$bc_ave) %>%
+  mutate(response = ifelse(delta < 0,"below", "above")) %>%
+  mutate(response = ifelse(delta == 0,"No data",response))
+
+# Diverging Barcharts (all years)
+ggplot(diff.df.summary, aes(x = regional_district,
                     y = delta,
                     label = delta)) +
-      geom_bar(stat='identity', aes(fill = response), width =.5)  +
-      scale_fill_manual(name="Mileage",
+  geom_bar(stat='identity', aes(fill = response), width =.5)  +
+  scale_fill_manual(name="Mileage",
                     labels = c("Above Average", "Below Average","No data"),
                     values = c("above" = "#008000", "below"="#FF0000", "no data" = 'grey')) +
   labs(title= "Regional difference from BC Ave",
        subtitle = " Bev units per capita") +
-      coord_flip()
-
+  coord_flip()
 ```
 
 This provides an indication over time for each region for all years 2007-2018. This has the advantage of showing the standard error over this time (although appears to be highly influenced by outliers). Perhasp the Comox Strathcona measure needs to be investigated more as appears well below average but may indicate missing data etc.
