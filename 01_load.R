@@ -122,8 +122,8 @@ regional.units.per.cap <- units.per.cap %>%
 
 # join the regional and prov. ave data and calculate the difference
 diff.df <- regional.units.per.cap %>%
-  left_join(., bc.units.per.cap, by = 'year') %>%
-  mutate(delta = ave-bc_ave) %>%
+  left_join(bc.units.per.cap, by = 'year') %>%
+  mutate(delta = ave - bc_ave) %>%
   mutate(response = ifelse(delta < 0,"below", "above")) %>%
   mutate(response = ifelse(delta == 0,"No data",response))
 
@@ -140,9 +140,23 @@ ggplot(diff.df, aes(x = regional_district,
        subtitle = " Bev units per capita") +
   coord_flip()
 
+bc.units.per.cap_summary <- units.per.cap %>%
+  na.omit() %>%
+  summarise(bc_ave = mean(n.pop))
+
+regional.units.per.cap_summary <- units.per.cap %>%
+  na.omit() %>%
+  group_by(regional_district) %>%
+  summarise(ave = mean(n.pop))
+
+# join the regional and prov. ave data and calculate the difference
+diff.df.summary <- regional.units.per.cap_summary %>%
+  mutate(delta = ave - bc.units.per.cap_summary$bc_ave) %>%
+  mutate(response = ifelse(delta < 0,"below", "above")) %>%
+  mutate(response = ifelse(delta == 0,"No data",response))
 
 # Diverging Barcharts (all years)
-ggplot(diff.df, aes(x = regional_district,
+ggplot(diff.df.summary, aes(x = regional_district,
                     y = delta,
                     label = delta)) +
   geom_bar(stat='identity', aes(fill = response), width =.5)  +
