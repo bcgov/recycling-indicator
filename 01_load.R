@@ -98,6 +98,10 @@ ggplot(weight.per.cap,aes(year,n.pop)) +
        x = "Year", y = "weight per cap (tonnes") +
   theme(axis.text.x = element_text(angle = 90))
 
+#test <- weight.per.cap %>%
+#  dplyr::filter(regional_district == "North Coast")
+#  dplyr::filter(year == 2015)
+
 # calculate the provincial average
 bc.units.per.cap <- units.per.cap %>%
   na.omit() %>%
@@ -129,6 +133,8 @@ ggplot(diff.df, aes(x = regional_district,
        subtitle = " Bev units per capita") +
   coord_flip()
 
+#test <- diff.df %>%
+#  dplyr::filter(year == 2015)
 
 # Diverging Barcharts (all years)
 ggplot(diff.df, aes(x = regional_district,
