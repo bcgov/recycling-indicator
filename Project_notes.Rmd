@@ -17,9 +17,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # EPR: Project Notes
 
-The dataset provide as part of environment reporting legislation in pdf format and has been transposed to an excel. Detailed information about the program can be found [here](https://www2.gov.bc.ca/gov/content/environment/waste-management/recycling/product-stewardship)
+The dataset provide as part of environment reporting legislation requirements in pdf format and has been transposed to an excel. Detailed information about the program can be found [here](https://www2.gov.bc.ca/gov/content/environment/waste-management/recycling/product-stewardship).
 
-This indicator will be replacing the [tire recycling indicator](https://www2.gov.bc.ca/gov/content/environment/research-monitoring-reporting/reporting/environmental-reporting-bc/sustainability-indicators)
+This indicator will be replacing the [tire recycling indicator](https://www2.gov.bc.ca/gov/content/environment/research-monitoring-reporting/reporting/environmental-reporting-bc/sustainability-indicators).
 
 
 ## Data summary: 
@@ -30,31 +30,31 @@ There are seven sets of data assessed for this indicator;
 - Oil 
 - Tires
 - Paint-Flam_Pest (pfp)
-- Elect
+- Electical
 - Lead-Acid Batteries 
 - Packaging and Printed Paper (ppp)
 
-In most cases data was combined with BC population data to calculate per person values per region. BC population data was manualy extracted per regional district for 2000 - 2018 using the [BC Population tool](https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx). The exception to this was Oil, lubricant, antifreeze dataset in which the raw data was already summarised to a per capita measure. The raw data is available within the reports. 
+In most cases data was combined with BC population data to calculate per person values per region. BC population data was manually extracted per regional district (2000 - 2018) using the [BC Population tool](https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx). Data used in the Oil, lubricant, antifreeze etc measure was already summarised to a per capita measure. Raw data is available within the pdf reports if required.
 
 Broadly, each of the above indicators has data on 
 1) quantity of items (kgs/litres) per regional district, 
-2) financial summaries 
+2) financial summaries; and 
 3) units moved
 
-Financial and unit data is compiled at the provincial scale.  
+Financial and unit data is compiled at the provincial scale (not regional).
 
 Not all indicators had available data on all three catergories and collection years varied per indicator. 
 
-Some changes to regional district names and associations (merging) was also addressed. This included updating regional district names (Queen Charlotte/Skeena to North Coast, Powell River to Qathet, joining Comox and Strathcona into a single region)
+Some changes to regional district names and associations was addressed. This included updating regional district names (Queen Charlotte/Skeena to North Coast, Powell River to Qathet), and combining regional districts (Comox and Strathcona). The northern rockies data was also incorporated.  
 
 
 ### Work flow: 
 
-1) All raw data is extracted from the excel worksheets and combined into a three dataframes using the 'clean.readxl.R' script. The dataframes are 'all.finance', 'all.units', 'all.regions'
+1) All raw data is extracted from excel worksheets and combined into a three dataframes using the 'clean.readxl.R' script. The dataframes are 'all.finance', 'all.units', 'all.regions'.
 
-2) Data is then loading into R and inital summaries and exploration is conducted using the '01_load.R' script **
+2) Data is then loading into R and inital summaries and exploration is conducted using the '01_load.R' script **. A graphical html output of these analysis can be run using the ('Project_notes.Rmd' file)
 
-3) Initially each indicator was explored to detect patterns and possible data errors. This is shown below
+3) Initially each indicator was explored to detect patterns and possible data errors. This is shown below.
 
 4) Still to do : 
 - refine data summaries.
@@ -64,24 +64,23 @@ Some changes to regional district names and associations (merging) was also addr
 
 
 ** Note: during this process when typos and errors were found in the original
-datasets manual updates were made and marked in highlighter to correct or double check with data custodian. 
+datasets manual updates were made and highlighted to correct or to be double checked with the data custodian. 
 
 
 ## 1) Beverage containers 
 
-Containers were collected from multiple groups: Encorp Pacific (Canada), BC Brewers Recycles Collection Council. Both of these datasets contained metrics on the units collected, weight collection (tonnes) with population data from 2006 - 2017. There is also some financial data ( revenue/ expenditure /deposits charged / units moved) and other (CO2 Equivalent Reduced (tonnes), weight of material)
+Containers were collected from multiple groups: Encorp Pacific (Canada), BC Brewers Recycles Collection Council. Both of these datasets contained metrics on the units collected, weight collection (tonnes) with population data from 2006 - 2017. There is also some financial data ( revenue/ expenditure /deposits charged / units moved) and other (CO2 Equivalent Reduced (tonnes), weight of material).
 
 Data exploration points to consider:  
 
 - Regional and financial data grouped for Encorp and BCBRCC 
-- BCBRC years are different (2007/08, 2008/09,2009/10) as BCBRCC reported to financial years (March 31st) over this period. In these cases data was assigned to preceeding year. 
-- In Encorp data Comox and Strathcona joined (2007 to 2010), then split into two seperate regions from 2011 onwards. These are recorded seperately for BRCC. 
+- BCBRC collection year time period differs (i.e. 2007/08, 2008/09,2009/10) with some data reported per financial years (March 31st). In these cases data was assigned to preceeding year. 
 - Some data anomolied in Central Coast and Central Kootneys in 2015 were verified in pdf reports and found to be same as pdf report. 
 
 ### Regional data exploration 
 
 
-```{r loadlibs, echo = TRUE, include = FALSE, message = FALSE}
+```{r loadlibs, echo = TRUE, include = FALSE, warning=FALSE}
 library(readr)
 library(dplyr)
 library(ggplot2)
@@ -92,7 +91,7 @@ library(sf)
 library(envreportutils)
 ```
 
-```{r loaddata, echo=TRUE, include = FALSE}
+```{r loaddata, echo=TRUE, include = FALSE, warning = FALSE}
 # Read in population data -------------------------------
 # BC Pop Stats (ignore and get directly from Stats Can)
 # https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx
@@ -155,7 +154,7 @@ weight.per.cap <-  priority %>%
 
 ``` 
 
-```{r, include = TRUE, echo = FALSE}
+```{r, include = TRUE, echo = FALSE, warnings = FALSE}
 # Units per capita
 ggplot(units.per.cap, aes(year, n.pop)) +
       facet_wrap(~ regional_district) +
@@ -166,9 +165,9 @@ ggplot(units.per.cap, aes(year, n.pop)) +
 
 ```
 
-This plot indicates some data anomolies in the 2015 datasets forthe central coast and Central Kootneys. After verifying with the original [datasets](https://www2.gov.bc.ca/assets/gov/environment/waste-management/recycling/recycle/beverage-containers/ar/bdl/2015_bdl_annual_report.pdf) these numbers are the same as those reported in the original pdf.
+This plot indicates some data anomolies in 2015 forthe central coast and Central Kootneys. After verifying with the original [datasets](https://www2.gov.bc.ca/assets/gov/environment/waste-management/recycling/recycle/beverage-containers/ar/bdl/2015_bdl_annual_report.pdf) these numbers are the same as those reported in the original pdf.
  
-```{r weight per cap, echo=FALSE, include = TRUE}
+```{r weight per cap, echo=FALSE, include = TRUE, warnings = FALSE}
 #weight per capita
 ggplot(weight.per.cap, aes(year, n.pop)) +
       facet_wrap(~ regional_district) +
@@ -179,9 +178,9 @@ ggplot(weight.per.cap, aes(year, n.pop)) +
 
 ```
 
-The weight per capital graphs show similar trends. Perhaps some data annomolies with the Metro Van. and Peace River patterns are identical (suspicious?). The outlier in for 2015 North Coast was adjusted in the raw data after checking pdf. 
+The weight per capital graphs show similar trends. Perhaps some data annomolies as Metro Van. and Peace River patterns are identical. The 2015 North Coast outlier was adjusted in the raw data after checking pdf. 
 
-More intresting is the divergence from the BC average to enable regions to see how they compare to the provincial average (above or below). 
+More interesting is the divergence from the BC average to enable regions to see how they compare to the provincial average (above or below). 
 
 ```{r prov compare, echo= FALSE, include = TRUE}
 # calculate the provincial average
@@ -217,7 +216,7 @@ ggplot(diff.df, aes(x = regional_district,
 
 ```
 
-```{r, echo= FALSE, include = TRUE}
+```{r, echo= FALSE, include = TRUE, warnings = FALSE}
 # Diverging Barcharts (all years)
 bc.units.per.cap_summary <- units.per.cap %>%
   na.omit() %>%
@@ -304,11 +303,11 @@ ggplot(fdata, aes(year, total, fill = measure)) +
   theme(axis.text.x = element_text(angle = 90))
 
 ```
-?? not sure what is going on here? The pattern is not easy to interpret
+Unsurewhat is going on here? The pattern is not easy to interpret. 
 
 ### Units Moved
 Data for units includes earlier years of recycling, although this may not be comparable. 
-Is there a difference in the units moved (recovered or sold over time?)
+Is there a difference in the units moved (recovered or sold over time?).
 
 ```{r, include = TRUE, echo = FALSE}
 units <- all.units %>% filter(type == 'bev')
@@ -350,7 +349,9 @@ ggplot(sum.udata1, aes(x = year, y = RecoveryRate))+
       theme(axis.text.x = element_text(angle = 90))
 
 ```
-Substantial changes in 2007/2008 data may reflect the change in reporting (change from Dec 31 to March 31st reporting for the BCBRC organization)
+
+
+Substantial changes in 2007/2008 data may reflect the change in reporting (change from Dec 31 to March 31st reporting for the BCBRC organization).
 
 
 Thoughts on Beverage recycling:
@@ -908,7 +909,7 @@ Note no finance data is availble for the pharma. dataset.
 
 ### Regional data 
 
-```{r, include = TRUE, echo = TRUE}
+```{r, include = TRUE, echo = FALSE}
 
 pharm_recovery <- all.regions %>% filter(type == "pharm")
 
@@ -1031,7 +1032,7 @@ ggplot(sum.udata, aes(year, total, fill = measure)) +
 ## 7) Packaging and Printed Paper (ppp)
 ### Regional data
 
-```{r include = TRUE, echo = FALSE}
+```{r, include = TRUE, echo = FALSE}
 
 ppp_recovery <- all.regions %>% filter (type == "ppp")
 
@@ -1129,6 +1130,3 @@ ggplot(sum.fdata, aes(year, total, fill = measure)) +
   theme(axis.text.x = element_text(angle = 90))
 
 ```
-
-
-### Units moved (ppp)
