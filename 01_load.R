@@ -11,10 +11,24 @@
 # See the License for the specific language governing permissions and limitations under the License.
 
 ## Load in libraries
-
-x <- c("dplyr","ggplot2","tidyr","stringr","reshape",
-       "bcmaps", "sf", "envreportutils") #raster","sp","sf","rgdal","xlsx","rJava","tibble","mapview","gtools")
-lapply(x, library, character.only = TRUE) ; rm(x)  # load the required packages
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(stringr)
+# library(reshape)
+library(bcmaps)
+library(sf)
+library(envreportutils)
+# library(raster)
+# library(sp)
+# library(sf)
+# library(rgdal)
+# library(xlsx)
+# library(rJava)
+# library(tibble)
+# library(mapview)
+# library(gtools)
 
 ## Load  data files
 
@@ -25,13 +39,13 @@ data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to r
 # https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx
 # manual export of population per regional district (2000 - 2018) and store in data folder
 
-pop.0 <- read.csv(paste('data','Population_Estimates.csv',sep = "/"),
-                  header = TRUE)
+pop.0 <- read_csv(file.path(data.dir,'Population_Estimates.csv'))
 
 pop <- pop.0 %>%
-  mutate(regional_district = gsub("-", " ", Regional.District),
-         n = Total, year = as.character(Year)) %>%
-  select(-c('ï..','Gender','Regional.District','Total',"Year")) %>%
+  mutate(regional_district = gsub("-", " ", `Regional District`),
+         pop = Total,
+         year = as.character(Year)) %>%
+  select(-c('X1','Gender','Regional District','Total',"Year")) %>%
   mutate(regional_district = ifelse(regional_district == "Powell River",
                                     "Qathet",
                                     ifelse(regional_district == "Stikine",
@@ -45,17 +59,17 @@ pop <- pop.0 %>%
 
 pop <- pop %>%
   group_by(regional_district, year) %>%
-  summarize(n = sum(n))
+  summarize(pop = sum(pop))
 
 #######################################################################
 
-source(paste('scratch','clean_readxl.R',sep = '/'))
+# source(paste('scratch','clean_readxl.R',sep = '/'))
 
 ##or
 
-#all.finance <- read.csv(paste('data','all.finance.csv',sep = "/"), header = TRUE)
-#all.regions <- read.csv(paste('data','all.regions.csv',sep = "/"), header = TRUE)
-#all.units <- read.csv(paste('data','all.units.csv',sep = "/"), header = TRUE)
+all.finance <- read_csv(file.path('data','all.finance.csv'))
+all.regions <- read_csv(file.path('data','all.regions.csv'))
+all.units <- read_csv(file.path('data','all.units.csv'))
 
 
 # Beverage ------------------------------------------------------
@@ -68,13 +82,10 @@ priority <- regions %>%
                     "Absolute Collection-Weight Collected (Tonnes)-")) %>%
   select(-c(organization,type)) %>%
   group_by(measure, regional_district) %>%
-  summarise_all(., sum, na.rm = TRUE) %>%
-  gather("year", "n",3:length(.)) %>%
-  left_join(.,pop, by = c("regional_district","year")) %>%
-  dplyr::rename(.,'pop' = 'n.y') %>%
-  dplyr::rename('n' = 'n.x')
-
-priority$n.pop = priority$n / priority$pop # this is not working in dplyr version
+  summarise_all(sum, na.rm = TRUE) %>%
+  gather("year", "n", 3:length(.)) %>%
+  left_join(pop, by = c("regional_district","year")) %>%
+  mutate(n.pop = n / pop)
 
 # break up into weight and units
 units.per.cap <- priority %>%
@@ -115,8 +126,8 @@ regional.units.per.cap <- units.per.cap %>%
 
 # join the regional and prov. ave data and calculate the difference
 diff.df <- regional.units.per.cap %>%
-  left_join(., bc.units.per.cap, by = 'year') %>%
-  mutate(delta = ave-bc_ave) %>%
+  left_join(bc.units.per.cap, by = 'year') %>%
+  mutate(delta = ave - bc_ave) %>%
   mutate(response = ifelse(delta < 0,"below", "above")) %>%
   mutate(response = ifelse(delta == 0,"No data",response))
 
@@ -133,11 +144,25 @@ ggplot(diff.df, aes(x = regional_district,
        subtitle = " Bev units per capita") +
   coord_flip()
 
-#test <- diff.df %>%
-#  dplyr::filter(year == 2015)
+
+bc.units.per.cap_summary <- units.per.cap %>%
+  na.omit() %>%
+  summarise(bc_ave = mean(n.pop))
+
+regional.units.per.cap_summary <- units.per.cap %>%
+  na.omit() %>%
+  group_by(regional_district) %>%
+  summarise(ave = mean(n.pop))
+
+# join the regional and prov. ave data and calculate the difference
+diff.df.summary <- regional.units.per.cap_summary %>%
+  mutate(delta = ave - bc.units.per.cap_summary$bc_ave) %>%
+  mutate(response = ifelse(delta < 0,"below", "above")) %>%
+  mutate(response = ifelse(delta == 0,"No data",response))
+
 
 # Diverging Barcharts (all years)
-ggplot(diff.df, aes(x = regional_district,
+ggplot(diff.df.summary, aes(x = regional_district,
                     y = delta,
                     label = delta)) +
   geom_bar(stat='identity', aes(fill = response), width =.5)  +
