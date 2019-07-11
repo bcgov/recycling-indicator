@@ -82,12 +82,14 @@ Data exploration points to consider:
 
 
 ```{r loadlibs, echo = TRUE, include = FALSE, message = FALSE}
-
-x <- c("dplyr", "ggplot2", "tidyr", "stringr", 
-       "bcmaps", "sf", "envreportutils") 
-lapply(x, library, character.only = TRUE)
-rm(x)  
-
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(stringr)
+library(bcmaps)
+library(sf)
+library(envreportutils)
 ```
 
 ```{r loaddata, echo=TRUE, include = FALSE}
@@ -95,14 +97,20 @@ rm(x)
 # BC Pop Stats (ignore and get directly from Stats Can)
 # https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx
 # manual export of population per regional district (2000 - 2018) and store in data folder
+data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")
 
-pop.0 <- read.csv(paste('data','Population_Estimates.csv',sep = "/"),
-                header = TRUE)
+# Read in population data -------------------------------
+# BC Pop Stats (ignore and get directly from Stats Can)
+# https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx
+# manual export of population per regional district (2000 - 2018) and store in data folder
+
+pop.0 <- read_csv(file.path(data.dir,'Population_Estimates.csv'))
 
 pop <- pop.0 %>%
-  mutate(regional_district = gsub("-", " ", Regional.District),
-         n = Total, year = as.character(Year)) %>%
-  select(-c('ï..','Gender','Regional.District','Total',"Year")) %>%
+  mutate(regional_district = gsub("-", " ", `Regional District`),
+         pop = Total,
+         year = as.character(Year)) %>%
+  select(-c('X1','Gender','Regional District','Total',"Year")) %>%
   mutate(regional_district = ifelse(regional_district == "Powell River",
                                     "Qathet",
                                     ifelse(regional_district == "Stikine",
@@ -110,15 +118,20 @@ pop <- pop.0 %>%
                                            ifelse(regional_district == "Comox Valley",
                                                   "Comox Strathcona",
                                                   ifelse(regional_district == "Strathcona",
-                                                         "Comox Strathcona",                                                         regional_district)))))
+                                                         "Comox Strathcona",
+                                                         regional_district)))))
+
 
 pop <- pop %>%
-   group_by(regional_district, year) %>%
-   summarize(n = sum(n))
+  group_by(regional_district, year) %>%
+  summarize(pop = sum(pop))
 
 #######################################################################
 
-source(paste('scratch','clean_readxl.R',sep = '/'))
+# source(paste('scratch','clean_readxl.R',sep = '/'))
+all.finance <- read_csv(file.path('data','all.finance.csv'))
+all.regions <- read_csv(file.path('data','all.regions.csv'))
+all.units <- read_csv(file.path('data','all.units.csv'))
 
 # Beverage ------------------------------------------------------
 
@@ -131,11 +144,8 @@ priority <- regions %>%
   select(-c(organization,type)) %>%
   gather("year", "n", 3:length(.)) %>%
   left_join(.,pop, by = c("regional_district", "year")) %>%
-  dplyr::rename(., 'pop' = 'n.y') %>%
-  dplyr::rename('n' = 'n.x') %>%
-  filter(year > 2005)
-
-priority$n.pop = priority$n / priority$pop # this is not working in dplyr version
+  filter(year > 2005) %>%
+  mutate(n.pop = n / pop)
 
 # break up into weight and units
 units.per.cap <- priority %>%
@@ -209,8 +219,23 @@ ggplot(diff.df, aes(x = regional_district,
 
 ```{r, echo= FALSE, include = TRUE}
 # Diverging Barcharts (all years)
+bc.units.per.cap_summary <- units.per.cap %>%
+  na.omit() %>%
+  summarise(bc_ave = mean(n.pop))
 
-ggplot(diff.df, aes(x = regional_district,
+regional.units.per.cap_summary <- units.per.cap %>%
+  na.omit() %>%
+  group_by(regional_district) %>%
+  summarise(ave = mean(n.pop))
+
+# join the regional and prov. ave data and calculate the difference
+diff.df.summary <- regional.units.per.cap_summary %>%
+  mutate(delta = ave - bc.units.per.cap_summary$bc_ave) %>%
+  mutate(response = ifelse(delta < 0,"below", "above")) %>%
+  mutate(response = ifelse(delta == 0,"No data",response))
+
+# Diverging Barcharts (all years)
+ggplot(diff.df.summary, aes(x = regional_district,
                     y = delta,
                     label = delta)) +
   geom_bar(stat='identity', aes(fill = response), width =.5)  +
@@ -622,7 +647,7 @@ This might need a bit more digging into to see the patterns
 The type of units aer broken into many subsets: 
 
 ```{r, include = TRUE, echo = FALSE}
-units <- all.units %>% filter(type == 'tire')
+tire_units <- all.units %>% filter(type == 'tire')
 
 udata <- tire_units %>%
       select(-c(organization, type)) %>%
@@ -705,11 +730,9 @@ pfp_data <- pfp_recovery %>%
   select(-c(organization,type)) %>%
   dplyr::filter(!regional_district == '') %>%
   group_by(measure, regional_district) %>%
-  summarise_all(., sum, na.rm = TRUE) %>%
+  summarise_all(sum, na.rm = TRUE) %>%
   gather("year", "n",3:length(.)) %>%
-  left_join(.,pop, by = c("regional_district","year")) %>%
-  dplyr::rename(.,'pop' = 'n.y') %>%
-  dplyr::rename('n' = 'n.x') %>%
+  left_join(pop, by = c("regional_district","year")) %>%
   filter(year > 2006) %>%
   mutate(unit.per.cap = n / pop)
 
@@ -893,7 +916,7 @@ ph_data <- pharm_recovery %>%
   select (-c(organization,type)) %>%
   dplyr::filter(!regional_district == '') %>%
   group_by(measure, regional_district) %>%
-  summarise_all(., sum, na.rm = TRUE) %>%
+  summarise_all(sum, na.rm = TRUE) %>%
   gather("year", "total",3:length(.)) %>%
   filter(year > 2007)
 
@@ -906,7 +929,7 @@ weight.per.cap <-  ph_data %>%
 # Add population data set 
 ph_data <- left_join(weight.per.cap, pop,
                      by = c("regional_district","year")) %>%
-  mutate(weight.per.cap = total / n)
+  mutate(weight.per.cap = total / pop)
 
 # calculate the provincial average
 bc.weight.per.cap <- ph_data %>%
@@ -939,7 +962,23 @@ ggplot(diff_df, aes(x = regional_district,
   coord_flip()
 
 # Diverging Barcharts (all years)
-ggplot(diff_df, aes(x = regional_district,
+
+bc.weight.per.cap_summary <- ph_data %>%
+  na.omit() %>%
+  summarise(bc_ave = mean(weight.per.cap))
+
+regional.weight.per.cap_summary <- ph_data %>%
+  na.omit() %>%
+  group_by(regional_district) %>%
+  summarise(ave = mean(weight.per.cap))
+
+# join the regional and prov. ave data and calculate the difference
+diff_df_summary <- regional.weight.per.cap_summary %>%
+  mutate(delta = ave - bc.weight.per.cap_summary$bc_ave) %>%
+  mutate(response = ifelse(delta < 0,"below", "above")) %>%
+  mutate(response = ifelse(delta == 0,"No data", response))
+  
+ggplot(diff_df_summary, aes(x = regional_district,
                     y = delta,
                     label = delta)) +
   geom_bar(stat = 'identity', aes(fill = response), width = .5)  +
@@ -1001,7 +1040,7 @@ ppp_data <- ppp_recovery %>%
   dplyr::filter(!regional_district == '') %>%
   gather("year", "total", 3:length(.)) %>%
   left_join(., pop, c("regional_district", "year")) %>%
-  mutate(weight.per.cap = total / n)
+  mutate(weight.per.cap = total / pop)
 
 # calculate the provincial average
 bc.weight.per.cap <- ppp_data %>%
@@ -1035,7 +1074,22 @@ ggplot(diff_df, aes(x = regional_district,
   theme(legend.position = "none")
 
 # Diverging Barcharts (all years)
-ggplot(diff_df, aes(x = regional_district,
+bc.weight.per.cap_summary <- ppp_data %>%
+  na.omit() %>%
+  summarise(bc_ave = mean(weight.per.cap))
+
+regional.weight.per.cap_summary <- ppp_data %>%
+  na.omit() %>%
+  group_by(regional_district) %>%
+  summarise(ave = mean(weight.per.cap))
+
+# join the regional and prov. ave data and calculate the difference
+diff_df_summary <- regional.weight.per.cap_summary %>%
+  mutate(delta = ave - bc.weight.per.cap_summary$bc_ave,
+         response = ifelse(delta < 0,"below", "above")) %>%
+  mutate(response = ifelse(delta == 0,"No data",response))
+
+ggplot(diff_df_summary, aes(x = regional_district,
                     y = delta,
                     label = delta)) +
   geom_bar(stat = 'identity', aes(fill = response), width = .5)  +
