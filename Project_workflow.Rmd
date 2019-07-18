@@ -1,0 +1,66 @@
+---
+title: "Project_Notes"
+author: "G Perkins"
+date: "July 18, 2019"
+output: 
+  html_document: 
+    toc : true
+    toc_float: 
+      collapsed: true
+      smooth_scroll: false
+
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# EPR: Project Notes
+
+The dataset provide as part of environment reporting legislation requirements in pdf format and has been transposed to an excel format. Detailed information about the program can be found [here](https://www2.gov.bc.ca/gov/content/environment/waste-management/recycling/product-stewardship).
+
+This indicator will be replacing the [tire recycling indicator](https://www2.gov.bc.ca/gov/content/environment/research-monitoring-reporting/reporting/environmental-reporting-bc/sustainability-indicators).
+
+
+## Data summary: 
+
+There are seven sets of data assessed for this indicator; 
+
+- Beverage containers 
+- Oil 
+- Tires
+- Paint-Flam_Pest (pfp)
+- Electical
+- Lead-Acid Batteries 
+- Packaging and Printed Paper (ppp)
+
+In most cases data was combined with BC population data to calculate per person values per region. BC population data was manually extracted per regional district (2000 - 2018) using the [BC Population tool](https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx). Data used in the Oil, lubricant, antifreeze etc measure was already summarised to a per capita measure. Raw data is available within the pdf reports if required.
+
+Data will be summarised by 1) tonnage per region per capita and 2) financial trends over time. As not all measures are documented over the same time periods we refined trends from 2014 - 2017.
+
+Regional tonnage data (weight collected) includes : Beverage (2000 - 2017) 
+
+Tires (already calculated per capita ? in kg - do we want to include this )
+
+
+### Work flow: 
+
+1) All raw data is extracted from excel worksheets and combined into a three dataframes using the 'clean.readxl.R' script. The dataframes are 'all.finance', 'all.units', 'all.regions'. 
+
+2) Data is then loading into R and inital summaries and exploration is conducted using the '01_load.R' script **. A graphical html output of these analysis can be run using the ('Project_notes.Rmd' file)
+
+
+```{r , echo = TRUE, include = TRUE}
+
+
+
+
+```
+
+
+
+
+ 
+
