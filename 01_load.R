@@ -72,6 +72,47 @@ all.regions <- read_csv(file.path('data','all.regions.csv'))
 all.units <- read_csv(file.path('data','all.units.csv'))
 
 
+
+
+# Finance consolidated:
+
+desc <- all.finance %>%
+  dplyr::select(type, measure)
+
+unique(all.finance$measure)
+to.keep = c("Expenditure-Total", "Expenditures", "Revenue-Total","Revenues" )
+
+fdata <- all.finance %>%
+  gather("year", "n", 4:length(.)) %>%
+  mutate(n.m = n/1000000) %>%
+  group_by(type, measure, year) %>%
+  summarise(total = sum(n.m,na.rm = TRUE)) %>%
+  filter(measure %in% to.keep)
+
+
+ggplot(fdata, aes(year, total, fill = measure)) +
+  facet_wrap(~ type) +
+  geom_bar(stat="identity",position="dodge") +
+  labs(title="Unclaimed deposits and consumer-expenditure",
+       x = "Year", y = " Amount ($1,000,000)") +
+  theme(axis.text.x = element_text(angle = 90))
+
+
+
+# regional datasets to compare tonnage per region :
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Beverage ------------------------------------------------------
 
 regions <- all.regions %>% filter(type == 'bev')
