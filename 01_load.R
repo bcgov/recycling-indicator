@@ -250,48 +250,10 @@ library(readr)
 library(here)
 library(envreportutils)
 
+x <- region
+
 rdkey <- read_csv(file.path('data','RD_KEY.csv'))
-region <-  left_join(region, rdKey, by = c("regional_district" = "Region"))
-
-# add the BC boundary data
-bc <- bc_bound() # plot(st_geometry(bc))
-nr <- combine_nr_rd(class = 'sf') %>%
-  left_join(region, by = c() )
-
-
-ADMIN_AREA_ABBREVIATION
-
-upc <- left_join(region, rdKey, by = c("regional_district" = "Region"))
-
-upc.sp <- merge(rd.wgs,upc, by.x = "ADMIN_AREA_ABBREVIATION", by.y="Abrev")
-
-m <- leaflet(data = upc.sp )%>%
-  addTiles() %>%
-  addPolygons(fillColor = "green")
-
-m
-
-rd.names <- rd[,c("ADMIN_AREA_ABBREVIATION","ADMIN_AREA_NAME")]
-
-
-## make some graphical outputs : STILL TO DO
-
-
-#st_geometry(rd)
-#unique(rd$ADMIN_AREA_ABBREVIATION)
-#leaflet(data = rd.wgs)%>%
-#  addTiles() %>%
-#  addPolygons(fillColor = "green")
-
-mapview(rd)
-
-mapview()
-leaflet(reg_dist)%>%
-  addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
-              opacity = 1.0, fillOpacity = 0.5,
-              fillColor = ~colorQuantile("YlOrRd", ADMIN_AREA_NAME)(ADMIN_AREA_NAME))
-
-####
+region <-  left_join(region, rdkey, by = c("regional_district" = "Region"))
 
 reg_dist <- combine_nr_rd() %>%
   rmapshaper::ms_simplify() %>%
@@ -301,7 +263,7 @@ reg_dist <- combine_nr_rd() %>%
   summarize() %>%
   left_join(region, by = c("ADMIN_AREA_ABBREVIATION" = "Abrev"))
 
-mapview(reg_dist)
+#mapview(reg_dist)
 
 labels <- sprintf(
   "<strong>%s (%s%%)</strong>",
@@ -311,9 +273,8 @@ labels <- sprintf(
 
 pal <- colorNumeric(palette = "YlGn", domain = reg_dist$n.pop.sum)
 
-
 leaflet(reg_dist, width = "900px", height = "550px") %>%
-  setView(lng = -126.5, lat = 54.5, zoom = 8) %>%
+  setView(lng = -126.5, lat = 54.5, zoom = 4) %>%
   addProviderTiles("OpenStreetMap.BlackAndWhite",
                    options = providerTileOptions(minZoom = 5, maxZoom = 10)) %>%
   addPolygons(color = "#7f7f7f", weight = 1, smoothFactor = 0.5,
@@ -344,15 +305,10 @@ leaflet(reg_dist, width = "900px", height = "550px") %>%
     position = "bottomleft", id = "reset-button")) %>%
   addLegend(position = "bottomleft", pal = pal, values = ~n.pop.sum,
             title = htmltools::HTML("Tonnes<br/>Recycled<br/>per<br/>capita"),
-            labFormat = labelFormat(suffix = , between = "", digits = 0))
+            labFormat = labelFormat(suffix = , between = "", digits = 3))
 
 
-
-
-
-
-
-
+# add pop up ?
 
 if (params$add_popups) {
   # get plot_list with ecoregions in same order as ecoregions in ecoreg
@@ -377,49 +333,6 @@ if (params$add_popups) {
 } else {
   popups <- popup_options <- NULL
 }
-```
-
-
-```{r labels-popups, include=FALSE}
-labels <- sprintf(
-  "<strong>%s (%s%%)</strong>",
-  tools::toTitleCase(tolower(ecoreg$ECOREGION_NAME)),
-  report_percent(ecoreg$percent_unroaded)
-) %>% lapply(htmltools::HTML)
-pal <- colorNumeric(palette = "YlGn", domain = ecoreg$percent_unroaded)
-```
-
-```{r leaflet-map, echo=FALSE}
-
-  addPolygons(color = "#7f7f7f",
-              fillColor = ~pal(percent_unroaded),
-              weight = 1, fillOpacity = 0.6,
-              highlightOptions = highlightOptions(fillOpacity = 0.9,
-                                                  weight = 2,
-                                                  bringToFront = FALSE),
-              label = labels,
-              labelOptions = labelOptions(direction = "auto",
-                                          textsize = "12px"),
-              popup = popups,
-              popupOptions = popup_options
-  ) %>%
-  addEasyButton(easyButton(
-    icon = htmltools::span('Reset Map'),
-    onClick = JS("function(btn, map) {
-                     map.closePopup();
-                     map.setView({lon: -126.5, lat: 54.5}, 5);
-                     // Close labels - they stay stuck open on mobile
-                     map.eachLayer(function (layer) {
-                         if (layer instanceof L.Polygon) {
-                           layer.label.close();
-                         }
-                     });
-                  }"),
-    position = "bottomleft", id = "reset-button")) %>%
-  addLegend(position = "bottomleft", pal = pal, values = ~percent_unroaded,
-            title = htmltools::HTML("% Roadless<br/>Area"),
-            labFormat = labelFormat(suffix = "%", between = "", digits = 0))
-```
 
 
 
