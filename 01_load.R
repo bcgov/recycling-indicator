@@ -75,7 +75,6 @@ all.units <- read_csv(file.path('data','all.units.csv'))
 
 
 
-
 # Finance consolidated:
 
 desc <- all.finance %>%
@@ -120,17 +119,74 @@ ggplot(rdata, aes(year, total, group = type)) +
   theme(axis.text.x = element_text(angle = 90)) #+
   scale_y_log10()
 
+# Add a balance data set
+bdata <- fdata  %>%
+    group_by(type) %>%
+    filter(!is.na(measure_consol)) %>%
+    select(- measure)%>%
+    filter(total > 0)%>%
+    spread(., measure_consol, total) %>%
+    mutate(Balance = Revenue - Expenditure)
 
+# Balance and line type
+ggplot(bdata, aes(year, Balance, group = type)) +
+  geom_line(aes(colour = type)) +
+  geom_point(aes(colour = factor(type)))+
+  labs(title="Balance per year",
+       x = "Year", y = " Amount ($1,000,000)") +
+  theme(axis.text.x = element_text(angle = 90))
 
+# bar chart
+ggplot(bdata, aes(year, Balance, fill = type)) +
+  facet_wrap(~ type) +
+  geom_bar(stat="identity", position="dodge") +
+  labs(title="Balance per year",
+       x = "Year", y = " Amount ($1,000,000)") +
+  theme(axis.text.x = element_text(angle = 90))
 
-       = colour = measure_consol)) +
-  geom_line() +
-  labs(title="",
+# bar chart
+ggplot(bdata, aes(year, Balance, fill = type)) +
+  geom_bar(stat="identity", position="dodge") +
+  labs(title="Balance per year",
        x = "Year", y = " Amount ($1,000,000)") +
   theme(axis.text.x = element_text(angle = 90))
 
 
-# regional datasets to compare tonnage per region :
+
+# regions consolidated -----------------------------------------
+
+
+all.regions <- read_csv(file.path('data','all.regions.csv'))
+
+unique(all.regions$measure)
+tonnes <- c("Absolute Collection-Weight Collected (Tonnes)-",
+      "Absolute collection - Regular products -Weight (kg)-",
+      "Absolute collection - batteries (kg)",
+      "Estimated Tonnes Collected", "tonnes of ppp",
+      "Absolute Collection-Weight Collected (kg)-")
+
+
+region <- all.regions %>%
+  filter(measure %in% tonnes) %>%
+  select(-c(organization)) %>%
+  group_by(type, measure, regional_district) %>%
+  summarise_all(sum, na.rm = TRUE) %>%
+  gather("year", "n", 4:length(.)) %>%
+  filter(!n == 0) %>%
+  #mutate(measure_consol = ifelse(grep("\\kg",measure),"kg","tonnes"))
+  mutate(measure_c = case_when(str_detect(measure, "*kg")) ~ "test",TRUE ~ as.character())
+
+  filter(str_detect(measure, "kg"))
+
+
+%>%
+  left_join(pop, by = c("regional_district","year")) %>%
+  mutate(n.pop = n / pop) %>%
+  filter(!n.pop == 0)
+
+
+weight.per.cap <-  priority %>%
+  filter(measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
 
 
 
@@ -141,6 +197,13 @@ ggplot(rdata, aes(year, total, group = type)) +
 
 
 
+
+
+
+
+
+
+## detailed coding for individual measures
 
 
 
