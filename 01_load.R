@@ -155,7 +155,6 @@ ggplot(bdata, aes(year, Balance, fill = type)) +
 
 # regions consolidated -----------------------------------------
 
-
 all.regions <- read_csv(file.path('data','all.regions.csv'))
 
 unique(all.regions$measure)
@@ -164,7 +163,6 @@ tonnes <- c("Absolute Collection-Weight Collected (Tonnes)-",
       "Absolute collection - batteries (kg)",
       "Estimated Tonnes Collected", "tonnes of ppp",
       "Absolute Collection-Weight Collected (kg)-")
-
 
 region <- all.regions %>%
   filter(measure %in% tonnes) %>%
@@ -192,6 +190,7 @@ region <- region %>%
   mutate(n.pop = n.tonnes / pop) %>%
   group_by(regional_district, year) %>%
   summarise(n.pop.sum = sum(n.pop))
+
 
 ## Basic plots for weight per capita per year
 ggplot(region, aes(year, n.pop.sum)) +
@@ -236,8 +235,191 @@ ggplot(diff.df, aes(x = regional_district,
   coord_flip()
 
 
+# Create a leaflet map
+
+library(leaflet)
+library(bcmaps)
+library(sf)
+library(dplyr)
+library(rmapshaper)
+library(mapview)
+#library(patchwork)
+library(ggplot2)
+library(purrr)
+library(readr)
+library(here)
+library(envreportutils)
+
+rdkey <- read_csv(file.path('data','RD_KEY.csv'))
+region <-  left_join(region, rdKey, by = c("regional_district" = "Region"))
+
+# add the BC boundary data
+bc <- bc_bound() # plot(st_geometry(bc))
+nr <- combine_nr_rd(class = 'sf') %>%
+  left_join(region, by = c() )
 
 
+ADMIN_AREA_ABBREVIATION
+
+upc <- left_join(region, rdKey, by = c("regional_district" = "Region"))
+
+upc.sp <- merge(rd.wgs,upc, by.x = "ADMIN_AREA_ABBREVIATION", by.y="Abrev")
+
+m <- leaflet(data = upc.sp )%>%
+  addTiles() %>%
+  addPolygons(fillColor = "green")
+
+m
+
+rd.names <- rd[,c("ADMIN_AREA_ABBREVIATION","ADMIN_AREA_NAME")]
+
+
+## make some graphical outputs : STILL TO DO
+
+
+#st_geometry(rd)
+#unique(rd$ADMIN_AREA_ABBREVIATION)
+#leaflet(data = rd.wgs)%>%
+#  addTiles() %>%
+#  addPolygons(fillColor = "green")
+
+mapview(rd)
+
+mapview()
+leaflet(reg_dist)%>%
+  addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
+              opacity = 1.0, fillOpacity = 0.5,
+              fillColor = ~colorQuantile("YlOrRd", ADMIN_AREA_NAME)(ADMIN_AREA_NAME))
+
+####
+
+reg_dist <- combine_nr_rd() %>%
+  rmapshaper::ms_simplify() %>%
+  st_intersection(bc_bound()) %>%
+  st_transform(4326) %>%
+  group_by(ADMIN_AREA_NAME,ADMIN_AREA_ABBREVIATION) %>%
+  summarize() %>%
+  left_join(region, by = c("ADMIN_AREA_ABBREVIATION" = "Abrev"))
+
+mapview(reg_dist)
+
+labels <- sprintf(
+  "<strong>%s (%s%%)</strong>",
+  tools::toTitleCase(tolower(reg_dist$regional_district)),
+  round(reg_dist$n.pop.sum, 3)
+) %>% lapply(htmltools::HTML)
+
+pal <- colorNumeric(palette = "YlGn", domain = reg_dist$n.pop.sum)
+
+
+leaflet(reg_dist, width = "900px", height = "550px") %>%
+  setView(lng = -126.5, lat = 54.5, zoom = 8) %>%
+  addProviderTiles("OpenStreetMap.BlackAndWhite",
+                   options = providerTileOptions(minZoom = 5, maxZoom = 10)) %>%
+  addPolygons(color = "#7f7f7f", weight = 1, smoothFactor = 0.5,
+              opacity = 1.0, fillOpacity = 0.6,
+              fillColor = ~ pal(n.pop.sum),
+              #fillColor = ~ colorQuantile("YlOrRd", n.pop.sum)(n.pop.sum),
+              highlightOptions = highlightOptions(fillOpacity = 0.9,
+                                    weight = 2,
+                                    bringToFront = FALSE),
+              label = labels,
+              labelOptions = labelOptions(direction = "auto",
+                                          textsize = "12px")#,
+              #popup = popups,
+              #popupOptions = popup_options
+ ) %>%
+  addEasyButton(easyButton(
+    icon = htmltools::span('Reset Map'),
+    onClick = JS("function(btn, map) {
+                     map.closePopup();
+                     map.setView({lon: -126.5, lat: 54.5}, 5);
+                     // Close labels - they stay stuck open on mobile
+                     map.eachLayer(function (layer) {
+                         if (layer instanceof L.Polygon) {
+                           layer.label.close();
+                         }
+                     });
+                  }"),
+    position = "bottomleft", id = "reset-button")) %>%
+  addLegend(position = "bottomleft", pal = pal, values = ~n.pop.sum,
+            title = htmltools::HTML("Tonnes<br/>Recycled<br/>per<br/>capita"),
+            labFormat = labelFormat(suffix = , between = "", digits = 0))
+
+
+
+
+
+
+
+
+
+if (params$add_popups) {
+  # get plot_list with ecoregions in same order as ecoregions in ecoreg
+  plot_list <- readRDS(here("tmp/plotlist.rds"))[ecoreg$ECOREGION_NAME]
+
+  popupGraph_list <- imap(plot_list, ~ {
+    .x$barchart +
+      .x$map +
+      plot_layout(widths = c(1, 1.5)) +
+      plot_annotation(title = tools::toTitleCase(tolower(.y)),
+                      theme = theme(title = element_text(size = 18)))
+  })
+
+  popups <-  popupGraph(popupGraph_list, type = "svg", width = 700,
+                        height = 400)
+  popup_options <-  popupOptions(maxWidth = "100%", autoPan = TRUE,
+                                 keepInView = TRUE,
+                                 zoomAnimation = FALSE,
+                                 closeOnClick = TRUE,
+                                 autoPanPaddingTopLeft = c(120, 10),
+                                 autoPanPaddingBottomRight = c(10,10))
+} else {
+  popups <- popup_options <- NULL
+}
+```
+
+
+```{r labels-popups, include=FALSE}
+labels <- sprintf(
+  "<strong>%s (%s%%)</strong>",
+  tools::toTitleCase(tolower(ecoreg$ECOREGION_NAME)),
+  report_percent(ecoreg$percent_unroaded)
+) %>% lapply(htmltools::HTML)
+pal <- colorNumeric(palette = "YlGn", domain = ecoreg$percent_unroaded)
+```
+
+```{r leaflet-map, echo=FALSE}
+
+  addPolygons(color = "#7f7f7f",
+              fillColor = ~pal(percent_unroaded),
+              weight = 1, fillOpacity = 0.6,
+              highlightOptions = highlightOptions(fillOpacity = 0.9,
+                                                  weight = 2,
+                                                  bringToFront = FALSE),
+              label = labels,
+              labelOptions = labelOptions(direction = "auto",
+                                          textsize = "12px"),
+              popup = popups,
+              popupOptions = popup_options
+  ) %>%
+  addEasyButton(easyButton(
+    icon = htmltools::span('Reset Map'),
+    onClick = JS("function(btn, map) {
+                     map.closePopup();
+                     map.setView({lon: -126.5, lat: 54.5}, 5);
+                     // Close labels - they stay stuck open on mobile
+                     map.eachLayer(function (layer) {
+                         if (layer instanceof L.Polygon) {
+                           layer.label.close();
+                         }
+                     });
+                  }"),
+    position = "bottomleft", id = "reset-button")) %>%
+  addLegend(position = "bottomleft", pal = pal, values = ~percent_unroaded,
+            title = htmltools::HTML("% Roadless<br/>Area"),
+            labFormat = labelFormat(suffix = "%", between = "", digits = 0))
+```
 
 
 
@@ -361,83 +543,6 @@ ggplot(diff.df.summary, aes(x = regional_district,
 test <- diff.df %>%
 
 #ggsave(paste('out/',"06_regional_bc_ave_unitsPerCap_allyrs.png"))
-
-
-# Work in progress
-#-------------------------
-# MAke a map to show spatial context
-
-library(leaflet)
-library(mapview)
-
-# addd the BC boundary data
-bc <- bc_bound() # plot(st_geometry(bc))
-rd <- regional_districts()
-rd.wgs<-st_transform(rd,4326) # convert to lat longs
-
-?combine_nr_rd
-
-nr <- combine_nr_rd(class = 'sf')
-
-unique(nr$ADMIN_AREA_NAME)
-# join the abbreviations to the data
-upc <- left_join(units.per.cap, rdKey, by = "Region")
-
-upc.sp <- merge(rd.wgs,upc, by.x = "ADMIN_AREA_ABBREVIATION", by.y="Abrev")
-
-m <- leaflet(data = upc.sp )%>%
-  addTiles() %>%
-  addPolygons(fillColor = "green")
-
-m
-
-rd.names <- rd[,c("ADMIN_AREA_ABBREVIATION","ADMIN_AREA_NAME")]
-
-
-## make some graphical outputs : STILL TO DO
-
-
-st_geometry(rd)
-
-unique(rd$ADMIN_AREA_ABBREVIATION)
-
-leaflet(data = rd.wgs)%>%
-  addTiles() %>%
-  addPolygons(fillColor = "green")
-
-
-
-water_locations_map <- leaflet(rf) %>%
-  addTiles() %>%
-  addCircleMarkers(lng = ~location.longitude,
-                   lat = ~location.latitude)
-
-
-mapview(rd)
-
-
-mapview()
-leaflet(rd)%>%
-  addPolygons(color = "#444444", weight = 1, smoothFactor = 0.5,
-              opacity = 1.0, fillOpacity = 0.5,
-              fillColor = ~colorQuantile("YlOrRd", ADMIN_AREA_NAME)(ADMIN_AREA_NAME))
-
-
-bc <- bc_bound()
-plot(st_geometry(bc))
-
-rd <- regional_districts()
-
-
-kootenays <- rd[rd$ADMIN_AREA_NAME == "Regional District of Central Kootenay", ]
-plot(st_geometry(kootenays), col = "lightseagreen", add = TRUE)
-
-
-sum.pdata1 <- sum.pdata %>% spread(Measure,total)
-
-
-sum.pdata1 <sum.pdata1 %>%
-  mutate(units.per.capita = "Absolute Collection-Units Collected-" / "Population-")
 
 
 
