@@ -33,13 +33,15 @@ library(envreportutils)
 ## Load  data files
 
 data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to run on O:/
+pop.dir <- file.path("C:/Temp/Github/recycling-indicator/data")
 
 # Read in population data -------------------------------
 # BC Pop Stats (ignore and get directly from Stats Can)
 # https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx
 # manual export of population per regional district (2000 - 2018) and store in data folder
 
-pop.0 <- read_csv(file.path(data.dir,'Population_Estimates.csv'))
+
+pop.0 <- read_csv(file.path("C:/Temp/Github/recycling-indicator/data",'Population_Estimates.csv'))
 
 pop <- pop.0 %>%
   mutate(regional_district = gsub("-", " ", `Regional District`),
@@ -80,23 +82,52 @@ desc <- all.finance %>%
   dplyr::select(type, measure)
 
 unique(all.finance$measure)
-to.keep = c("Expenditure-Total", "Expenditures", "Revenue-Total","Revenues" )
+to.keep = c("Expenditure-Total", "Expenditures", "Revenue-Total","Revenues",
+            "Revenue-Total (Including Deposits Charged)",
+            "Expenditure-Total (Including Deposits Returned)",
+            "Balance (Including Deposits Charged/Returned)" )
 
 fdata <- all.finance %>%
   gather("year", "n", 4:length(.)) %>%
   mutate(n.m = n/1000000) %>%
   group_by(type, measure, year) %>%
   summarise(total = sum(n.m,na.rm = TRUE)) %>%
-  filter(measure %in% to.keep)
+  filter(measure %in% to.keep) %>%
+  mutate(measure_consol = ifelse(measure %in%
+      c("Expenditure-Total","Expenditures",
+        "Expenditure-Total (Including Deposits Returned)"),"Expenditure",
+      ifelse(measure %in% c("Revenue-Total","Revenues",
+                            "Revenue-Total (Including Deposits Charged)"),"Revenue",NA) ))
 
-
-ggplot(fdata, aes(year, total, fill = measure)) +
+# bar chart
+ggplot(fdata, aes(year, total, fill = measure_consol)) +
   facet_wrap(~ type) +
-  geom_bar(stat="identity",position="dodge") +
-  labs(title="Unclaimed deposits and consumer-expenditure",
+  geom_bar(stat="identity", position="dodge") +
+  labs(title="Revenue and expenditure per year",
        x = "Year", y = " Amount ($1,000,000)") +
   theme(axis.text.x = element_text(angle = 90))
 
+# line plot of revenue
+rdata <- fdata %>%
+  filter(measure_consol == "Revenue") %>%
+  filter(total > 0)
+
+ggplot(rdata, aes(year, total, group = type)) +
+  geom_line(aes(colour = type)) +
+  geom_point(aes(colour = factor(type)))+
+  labs(title="Revenue per year",
+       x = "Year", y = " Amount ($1,000,000)") +
+  theme(axis.text.x = element_text(angle = 90)) #+
+  scale_y_log10()
+
+
+
+
+       = colour = measure_consol)) +
+  geom_line() +
+  labs(title="",
+       x = "Year", y = " Amount ($1,000,000)") +
+  theme(axis.text.x = element_text(angle = 90))
 
 
 # regional datasets to compare tonnage per region :
