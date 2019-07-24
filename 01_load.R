@@ -172,21 +172,70 @@ region <- all.regions %>%
   group_by(type, measure, regional_district) %>%
   summarise_all(sum, na.rm = TRUE) %>%
   gather("year", "n", 4:length(.)) %>%
-  filter(!n == 0) %>%
-  #mutate(measure_consol = ifelse(grep("\\kg",measure),"kg","tonnes"))
-  mutate(measure_c = case_when(str_detect(measure, "*kg")) ~ "test",TRUE ~ as.character())
+  filter(!n == 0)
 
-  filter(str_detect(measure, "kg"))
+# length(region$type)
+# unique(region$measure)
 
+region.kg <- region %>%
+  filter(grepl("kg", measure)) %>%
+  mutate(n.tonnes = n * 0.001)
 
-%>%
+region.tonnes <- region %>%
+  filter(grepl("onnes", measure)) %>%
+  mutate(n.tonnes = n)
+
+region <- rbind(region.kg, region.tonnes)
+
+region <- region %>%
   left_join(pop, by = c("regional_district","year")) %>%
-  mutate(n.pop = n / pop) %>%
-  filter(!n.pop == 0)
+  mutate(n.pop = n.tonnes / pop) %>%
+  group_by(regional_district, year) %>%
+  summarise(n.pop.sum = sum(n.pop))
+
+## Basic plots for weight per capita per year
+ggplot(region, aes(year, n.pop.sum)) +
+  facet_wrap(~ regional_district) +
+  geom_bar(stat = "identity", position="dodge") +
+  labs(title = "Regional weight of recycling (tonnes) per capita",
+       x = "Year", y = "weight per cap (tonnes") +
+  theme(axis.text.x = element_text(angle = 90))
+
+## weight per capita
+ggplot(region, aes(regional_district, n.pop.sum)) +
+  facet_wrap(~ year) +
+  geom_bar(stat = "identity",position="dodge") +
+  labs(title = "Regional weight of recycling (tonnes) per capita",
+       x = "Year", y = "weight per cap (tonnes") +
+  theme(axis.text.x = element_text(angle = 90))
+
+# calculate the provincial average
+bc.tonnes.per.cap <- region %>%
+  na.omit() %>%
+  group_by(year) %>%
+  summarise(bc_ave = mean(n.pop.sum))
+
+# join the regional and prov. ave data and calculate the difference
+diff.df <- region %>%
+  left_join(bc.tonnes.per.cap, by = 'year') %>%
+  mutate(delta = n.pop.sum - bc_ave) %>%
+  mutate(response = ifelse(delta < 0,"below", "above")) %>%
+  mutate(response = ifelse(delta == 0,"No data",response))
+
+# Diverging barcharts
+ggplot(diff.df, aes(x = regional_district,
+                    y = delta,
+                    label= delta)) +
+  facet_wrap(~year) +
+  geom_bar(stat='identity', aes(fill=response), width=.5)  +
+  scale_fill_manual(name="Mileage",
+                    labels = c("Above Average", "Below Average", "No Data"),
+                    values = c("above" = "#008000", "below"="#FF0000", "no data" = 'grey')) +
+  labs(title= "Regional difference from BC Ave",
+       subtitle = " Bev units per capita") +
+  coord_flip()
 
 
-weight.per.cap <-  priority %>%
-  filter(measure == 'Absolute Collection-Weight Collected (Tonnes)-' )
 
 
 
