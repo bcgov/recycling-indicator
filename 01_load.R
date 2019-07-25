@@ -16,19 +16,18 @@ library(dplyr)
 library(ggplot2)
 library(tidyr)
 library(stringr)
-# library(reshape)
 library(bcmaps)
 library(sf)
 library(envreportutils)
-# library(raster)
-# library(sp)
-# library(sf)
-# library(rgdal)
-# library(xlsx)
-# library(rJava)
-# library(tibble)
-# library(mapview)
-# library(gtools)
+library(leaflet)
+library(bcmaps)
+library(dplyr)
+library(rmapshaper)
+library(mapview)
+library(purrr)
+library(readr)
+library(here)
+
 
 ## Load  data files
 
@@ -73,14 +72,11 @@ all.finance <- read_csv(file.path('data','all.finance.csv'))
 all.regions <- read_csv(file.path('data','all.regions.csv'))
 all.units <- read_csv(file.path('data','all.units.csv'))
 
-
-
 # Finance consolidated:
 
 desc <- all.finance %>%
   dplyr::select(type, measure)
 
-unique(all.finance$measure)
 to.keep = c("Expenditure-Total", "Expenditures", "Revenue-Total","Revenues",
             "Revenue-Total (Including Deposits Charged)",
             "Expenditure-Total (Including Deposits Returned)",
@@ -98,15 +94,15 @@ fdata <- all.finance %>%
       ifelse(measure %in% c("Revenue-Total","Revenues",
                             "Revenue-Total (Including Deposits Charged)"),"Revenue",NA) ))
 
-# bar chart
+# basic bar chart
 ggplot(fdata, aes(year, total, fill = measure_consol)) +
   facet_wrap(~ type) +
   geom_bar(stat="identity", position="dodge") +
   labs(title="Revenue and expenditure per year",
-       x = "Year", y = " Amount ($1,000,000)") +
+       x = "Year", y = "Amount ($1,000,000)") +
   theme(axis.text.x = element_text(angle = 90))
 
-# line plot of revenue
+# filter for revenue only
 rdata <- fdata %>%
   filter(measure_consol == "Revenue") %>%
   filter(total > 0)
@@ -114,7 +110,7 @@ rdata <- fdata %>%
 ggplot(rdata, aes(year, total, group = type)) +
   geom_line(aes(colour = type)) +
   geom_point(aes(colour = factor(type)))+
-  labs(title="Revenue per year",
+  labs(title="Annual Revenue per recycling type",
        x = "Year", y = " Amount ($1,000,000)") +
   theme(axis.text.x = element_text(angle = 90)) #+
   scale_y_log10()
@@ -130,9 +126,10 @@ bdata <- fdata  %>%
 
 # Balance and line type
 ggplot(bdata, aes(year, Balance, group = type)) +
+  geom_hline(yintercept =  0, colour = "dark grey", linetype="dashed") +
   geom_line(aes(colour = type)) +
   geom_point(aes(colour = factor(type)))+
-  labs(title="Balance per year",
+  labs(title="Annual Balance per recycling type",
        x = "Year", y = " Amount ($1,000,000)") +
   theme(axis.text.x = element_text(angle = 90))
 
@@ -140,24 +137,21 @@ ggplot(bdata, aes(year, Balance, group = type)) +
 ggplot(bdata, aes(year, Balance, fill = type)) +
   facet_wrap(~ type) +
   geom_bar(stat="identity", position="dodge") +
-  labs(title="Balance per year",
+  labs(title="Annual Balance",
        x = "Year", y = " Amount ($1,000,000)") +
   theme(axis.text.x = element_text(angle = 90))
 
 # bar chart
 ggplot(bdata, aes(year, Balance, fill = type)) +
   geom_bar(stat="identity", position="dodge") +
-  labs(title="Balance per year",
+  labs(title="Annual Balance",
        x = "Year", y = " Amount ($1,000,000)") +
   theme(axis.text.x = element_text(angle = 90))
 
-
-
 # regions consolidated -----------------------------------------
-
 all.regions <- read_csv(file.path('data','all.regions.csv'))
 
-unique(all.regions$measure)
+#unique(all.regions$measure)
 tonnes <- c("Absolute Collection-Weight Collected (Tonnes)-",
       "Absolute collection - Regular products -Weight (kg)-",
       "Absolute collection - batteries (kg)",
@@ -170,64 +164,74 @@ region <- all.regions %>%
   group_by(type, measure, regional_district) %>%
   summarise_all(sum, na.rm = TRUE) %>%
   gather("year", "n", 4:length(.)) %>%
-  filter(!n == 0)
-
-# length(region$type)
-# unique(region$measure)
-
-region.kg <- region %>%
-  filter(grepl("kg", measure)) %>%
-  mutate(n.tonnes = n * 0.001)
-
-region.tonnes <- region %>%
-  filter(grepl("onnes", measure)) %>%
-  mutate(n.tonnes = n)
-
-region <- rbind(region.kg, region.tonnes)
-
-region <- region %>%
-  left_join(pop, by = c("regional_district","year")) %>%
-  mutate(n.pop = n.tonnes / pop) %>%
+  filter(!n == 0) %>%
+  mutate(n.kg = ifelse(str_detect(measure,"onnes"), n * 1000, n)) %>%
   group_by(regional_district, year) %>%
-  summarise(n.pop.sum = sum(n.pop))
+  summarise(n.kg.sum = sum(n.kg)) %>%
+  left_join(pop, by = c("regional_district","year")) %>%
+  filter(!regional_district == "Provincial Total") %>%
+  mutate(n.kg.pop = n.kg.sum / pop)
 
-
-## Basic plots for weight per capita per year
-ggplot(region, aes(year, n.pop.sum)) +
+## Basic plot one off plots for weight per capita per year
+ggplot(region, aes(year, n.kg.pop)) +
   facet_wrap(~ regional_district) +
   geom_bar(stat = "identity", position="dodge") +
   labs(title = "Regional weight of recycling (tonnes) per capita",
-       x = "Year", y = "weight per cap (tonnes") +
-  theme(axis.text.x = element_text(angle = 90))
-
-## weight per capita
-ggplot(region, aes(regional_district, n.pop.sum)) +
-  facet_wrap(~ year) +
-  geom_bar(stat = "identity",position="dodge") +
-  labs(title = "Regional weight of recycling (tonnes) per capita",
-       x = "Year", y = "weight per cap (tonnes") +
+       x = "Year", y = "weight per cap (kg)") +
   theme(axis.text.x = element_text(angle = 90))
 
 # calculate the provincial average
-bc.tonnes.per.cap <- region %>%
+bc.kg.per.cap <- region %>%
   na.omit() %>%
   group_by(year) %>%
-  summarise(bc_ave = mean(n.pop.sum))
+  summarise(bc_ave = mean(n.kg.pop))
+
+
+# write a function to plot each of the regions
+temp_plots <- function(rdata, district) {
+
+  make_plot <- ggplot () +
+    geom_bar(data = rdata, aes(x = year, y = n.kg.pop),stat = "identity") +
+    geom_point(data = bc.kg.per.cap, aes(x = year, y = bc_ave), colour = "red") +
+    labs(x = "Year", y = "kg per capital") + # Legend text
+    ggtitle(paste("Reported Recycling for "
+                  , district
+                  ,sep = "")) +
+    theme_soe() + theme(plot.title = element_text(hjust = 0.5), # Centre title
+                        legend.position = "bottom",
+                        plot.caption = element_text(hjust = 0)) # L-align caption
+    make_plot
+}
+
+# Create ggplot graph loop
+names <- unique(region$regional_district)
+
+plots <- for (i in 1:length(names)) {
+  district <- names[i]
+  rdata <- region %>% filter(regional_district == district)
+  p <- temp_plots(rdata, district)
+  ggsave(p, file = paste0("out/", district, ".svg"))
+}
+
+
+## other plot types # Diverging barcharts
 
 # join the regional and prov. ave data and calculate the difference
 diff.df <- region %>%
-  left_join(bc.tonnes.per.cap, by = 'year') %>%
-  mutate(delta = n.pop.sum - bc_ave) %>%
+  left_join(bc.kg.per.cap, by = 'year') %>%
+  mutate(delta = n.kg.pop.sum - bc_ave) %>%
   mutate(response = ifelse(delta < 0,"below", "above")) %>%
-  mutate(response = ifelse(delta == 0,"No data",response))
+  mutate(response = ifelse(delta == 0,"No data", response))
 
-# Diverging barcharts
+## something not quite right about this plot (2007/2008/and 2009 all look identical? )
+## may also want to split out the consumables and non-consumables.
+
 ggplot(diff.df, aes(x = regional_district,
                     y = delta,
-                    label= delta)) +
+                    label = delta)) +
   facet_wrap(~year) +
-  geom_bar(stat='identity', aes(fill=response), width=.5)  +
-  scale_fill_manual(name="Mileage",
+  geom_bar(stat ='identity', aes(fill = response), width = .5)  +
+  scale_fill_manual(name ="Total Recycling Quantity",
                     labels = c("Above Average", "Below Average", "No Data"),
                     values = c("above" = "#008000", "below"="#FF0000", "no data" = 'grey')) +
   labs(title= "Regional difference from BC Ave",
@@ -235,43 +239,54 @@ ggplot(diff.df, aes(x = regional_district,
   coord_flip()
 
 
-# Create a leaflet map
-
-library(leaflet)
-library(bcmaps)
-library(sf)
-library(dplyr)
-library(rmapshaper)
-library(mapview)
-#library(patchwork)
-library(ggplot2)
-library(purrr)
-library(readr)
-library(here)
-library(envreportutils)
-
-x <- region
-
-rdkey <- read_csv(file.path('data','RD_KEY.csv'))
-region <-  left_join(region, rdkey, by = c("regional_district" = "Region"))
+# Create a leaflet map ------------------------------
+#x <- region
+#rdkey <- read_csv(file.path('data','RD_KEY.csv'))
+#region <-  left_join(region, rdkey, by = c("regional_district" = "Region"))
+library(lwgeom)
 
 reg_dist <- combine_nr_rd() %>%
-  rmapshaper::ms_simplify() %>%
+  rmapshaper::ms_simplify(0.005) %>%
   st_intersection(bc_bound()) %>%
   st_transform(4326) %>%
   group_by(ADMIN_AREA_NAME,ADMIN_AREA_ABBREVIATION) %>%
-  summarize() %>%
-  left_join(region, by = c("ADMIN_AREA_ABBREVIATION" = "Abrev"))
+  summarize()
 
-#mapview(reg_dist)
+reg_dist$ADMIN_AREA_NAME[which(reg_dist$ADMIN_AREA_NAME %in%
+        c("Comox Valley Regional District", "Strathcona Regional District"))] <- "Comox-Strathcona"
 
+reg_dist %<>%
+  group_by(ADMIN_AREA_NAME) %>%
+  summarise(do_union = FALSE) %>%
+  ungroup() %>%
+  st_make_valid() %>%
+  st_collection_extract("POLYGON")
+
+### match district names by removing words and hyphenating
+reg_dist$ADMIN_AREA_NAME %<>%
+  str_replace(" Regional District", "") %>%
+  str_replace("Regional District of ", "") %>%
+  str_replace("-", " ") %>%
+  str_replace("qathet", "Qathet")
+
+mapview(reg_dist)
+
+# might need more changes ??
+
+
+reg_dist <- reg_dist %>%
+  left_join(region, by = c("ADMIN_AREA_NAME" = "regional_district"))
+
+mapview(reg_dist)
+
+# need to adjust these labels to kg.per.cap (not %)
 labels <- sprintf(
   "<strong>%s (%s%%)</strong>",
   tools::toTitleCase(tolower(reg_dist$regional_district)),
-  round(reg_dist$n.pop.sum, 3)
+  round(reg_dist$n.kg.pop, 0)
 ) %>% lapply(htmltools::HTML)
 
-pal <- colorNumeric(palette = "YlGn", domain = reg_dist$n.pop.sum)
+pal <- colorNumeric(palette = "YlGn", domain = reg_dist$n.kg.pop.sum)
 
 leaflet(reg_dist, width = "900px", height = "550px") %>%
   setView(lng = -126.5, lat = 54.5, zoom = 4) %>%
@@ -279,7 +294,7 @@ leaflet(reg_dist, width = "900px", height = "550px") %>%
                    options = providerTileOptions(minZoom = 5, maxZoom = 10)) %>%
   addPolygons(color = "#7f7f7f", weight = 1, smoothFactor = 0.5,
               opacity = 1.0, fillOpacity = 0.6,
-              fillColor = ~ pal(n.pop.sum),
+              fillColor = ~ pal(n.kg.pop.sum),
               #fillColor = ~ colorQuantile("YlOrRd", n.pop.sum)(n.pop.sum),
               highlightOptions = highlightOptions(fillOpacity = 0.9,
                                     weight = 2,
@@ -310,29 +325,36 @@ leaflet(reg_dist, width = "900px", height = "550px") %>%
 
 # add pop up ?
 
-if (params$add_popups) {
-  # get plot_list with ecoregions in same order as ecoregions in ecoreg
-  plot_list <- readRDS(here("tmp/plotlist.rds"))[ecoreg$ECOREGION_NAME]
+# if (params$add_popups) {
+#   # get plot_list with ecoregions in same order as ecoregions in ecoreg
+#   plot_list <- readRDS(here("tmp/plotlist.rds"))[ecoreg$ECOREGION_NAME]
+#
+#   popupGraph_list <- imap(plot_list, ~ {
+#     .x$barchart +
+#       .x$map +
+#       plot_layout(widths = c(1, 1.5)) +
+#       plot_annotation(title = tools::toTitleCase(tolower(.y)),
+#                       theme = theme(title = element_text(size = 18)))
+#   })
+#
+#   popups <-  popupGraph(popupGraph_list, type = "svg", width = 700,
+#                         height = 400)
+#   popup_options <-  popupOptions(maxWidth = "100%", autoPan = TRUE,
+#                                  keepInView = TRUE,
+#                                  zoomAnimation = FALSE,
+#                                  closeOnClick = TRUE,
+#                                  autoPanPaddingTopLeft = c(120, 10),
+#                                  autoPanPaddingBottomRight = c(10,10))
+# } else {
+#   popups <- popup_options <- NULL
+# }
 
-  popupGraph_list <- imap(plot_list, ~ {
-    .x$barchart +
-      .x$map +
-      plot_layout(widths = c(1, 1.5)) +
-      plot_annotation(title = tools::toTitleCase(tolower(.y)),
-                      theme = theme(title = element_text(size = 18)))
-  })
 
-  popups <-  popupGraph(popupGraph_list, type = "svg", width = 700,
-                        height = 400)
-  popup_options <-  popupOptions(maxWidth = "100%", autoPan = TRUE,
-                                 keepInView = TRUE,
-                                 zoomAnimation = FALSE,
-                                 closeOnClick = TRUE,
-                                 autoPanPaddingTopLeft = c(120, 10),
-                                 autoPanPaddingBottomRight = c(10,10))
-} else {
-  popups <- popup_options <- NULL
-}
+
+
+
+
+
 
 
 
@@ -348,8 +370,6 @@ if (params$add_popups) {
 
 
 ## detailed coding for individual measures
-
-
 
 # Beverage ------------------------------------------------------
 
