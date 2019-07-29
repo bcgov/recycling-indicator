@@ -70,84 +70,10 @@ pop <- pop %>%
 
 all.regions <- read_csv(file.path('data','all.regions.csv'))
 
-#all.finance <- read_csv(file.path('data','all.finance.csv'))
+all.finance <- read_csv(file.path('data','all.finance.csv'))
 #all.units <- read_csv(file.path('data','all.units.csv'))
 
-# Finance consolidated:
 
-desc <- all.finance %>%
-  dplyr::select(type, measure)
-
-to.keep = c("Expenditure-Total", "Expenditures", "Revenue-Total","Revenues",
-            "Revenue-Total (Including Deposits Charged)",
-            "Expenditure-Total (Including Deposits Returned)",
-            "Balance (Including Deposits Charged/Returned)" )
-
-fdata <- all.finance %>%
-  gather("year", "n", 4:length(.)) %>%
-  mutate(n.m = n/1000000) %>%
-  group_by(type, measure, year) %>%
-  summarise(total = sum(n.m,na.rm = TRUE)) %>%
-  filter(measure %in% to.keep) %>%
-  mutate(measure_consol = ifelse(measure %in%
-      c("Expenditure-Total","Expenditures",
-        "Expenditure-Total (Including Deposits Returned)"),"Expenditure",
-      ifelse(measure %in% c("Revenue-Total","Revenues",
-                            "Revenue-Total (Including Deposits Charged)"),"Revenue",NA) ))
-
-# basic bar chart
-ggplot(fdata, aes(year, total, fill = measure_consol)) +
-  facet_wrap(~ type) +
-  geom_bar(stat="identity", position="dodge") +
-  labs(title="Revenue and expenditure per year",
-       x = "Year", y = "Amount ($1,000,000)") +
-  theme(axis.text.x = element_text(angle = 90))
-
-# filter for revenue only
-rdata <- fdata %>%
-  filter(measure_consol == "Revenue") %>%
-  filter(total > 0)
-
-ggplot(rdata, aes(year, total, group = type)) +
-  geom_line(aes(colour = type)) +
-  geom_point(aes(colour = factor(type)))+
-  labs(title="Annual Revenue per recycling type",
-       x = "Year", y = " Amount ($1,000,000)") +
-  theme(axis.text.x = element_text(angle = 90)) #+
-  scale_y_log10()
-
-# Add a balance data set
-bdata <- fdata  %>%
-    group_by(type) %>%
-    filter(!is.na(measure_consol)) %>%
-    select(- measure)%>%
-    filter(total > 0)%>%
-    spread(., measure_consol, total) %>%
-    mutate(Balance = Revenue - Expenditure)
-
-# Balance and line type
-ggplot(bdata, aes(year, Balance, group = type)) +
-  geom_hline(yintercept =  0, colour = "dark grey", linetype="dashed") +
-  geom_line(aes(colour = type)) +
-  geom_point(aes(colour = factor(type)))+
-  labs(title="Annual Balance per recycling type",
-       x = "Year", y = " Amount ($1,000,000)") +
-  theme(axis.text.x = element_text(angle = 90))
-
-# bar chart
-ggplot(bdata, aes(year, Balance, fill = type)) +
-  facet_wrap(~ type) +
-  geom_bar(stat="identity", position="dodge") +
-  labs(title="Annual Balance",
-       x = "Year", y = " Amount ($1,000,000)") +
-  theme(axis.text.x = element_text(angle = 90))
-
-# bar chart
-ggplot(bdata, aes(year, Balance, fill = type)) +
-  geom_bar(stat="identity", position="dodge") +
-  labs(title="Annual Balance",
-       x = "Year", y = " Amount ($1,000,000)") +
-  theme(axis.text.x = element_text(angle = 90))
 
 # regions consolidated -----------------------------------------
 all.regions <- read_csv(file.path('data','all.regions.csv'))
@@ -206,19 +132,13 @@ temp_plots <- function(rdata, district) {
 
 # Create ggplot graph loop
 names <- unique(region$regional_district)
-<<<<<<< HEAD
 temp_plot_list <- vector(length = length(names), mode = "list")
-=======
->>>>>>> 1f2e3d7a1d411967a51fee20c3b454a554bdb142
 
 plots <- for (i in 1:length(names)) {
   district <- names[i]
   rdata <- region %>% filter(regional_district == district)
   p <- temp_plots(rdata, district)
-<<<<<<< HEAD
   temp_plot_list[[i]] <- p
-=======
->>>>>>> 1f2e3d7a1d411967a51fee20c3b454a554bdb142
   ggsave(p, file = paste0("out/", district, ".svg"))
 }
 
@@ -249,7 +169,6 @@ ggplot(diff.df, aes(x = regional_district,
 
 
 # Create a leaflet map ------------------------------
-#x <- region
 #rdkey <- read_csv(file.path('data','RD_KEY.csv'))
 #region <-  left_join(region, rdkey, by = c("regional_district" = "Region"))
 library(lwgeom)
@@ -277,28 +196,12 @@ reg_dist$ADMIN_AREA_NAME %<>%
   str_replace("Regional District of ", "") %>%
   str_replace("-", " ") %>%
   str_replace("qathet", "Qathet")
-<<<<<<< HEAD
-
-mapview(reg_dist)
 
 # might need more changes ??
-
 
 reg_dist <- reg_dist %>%
   left_join(region, by = c("ADMIN_AREA_NAME" = "regional_district")) %>%
   mutate(regional_district = ADMIN_AREA_NAME)
-=======
-
-mapview(reg_dist)
-
-# might need more changes ??
-
-
-reg_dist <- reg_dist %>%
-  left_join(region, by = c("ADMIN_AREA_NAME" = "regional_district"))
->>>>>>> 1f2e3d7a1d411967a51fee20c3b454a554bdb142
-
-mapview(reg_dist)
 
 # need to adjust these labels to kg.per.cap (not %)
 labels <- sprintf(
@@ -306,16 +209,18 @@ labels <- sprintf(
   tools::toTitleCase(tolower(reg_dist$regional_district)),
   round(reg_dist$n.kg.pop, 0)
 ) %>% lapply(htmltools::HTML)
-
-<<<<<<< HEAD
 pal <- colorNumeric(palette = "YlGn", domain = reg_dist$n.kg.pop)
 
 # set up popup list
 temp_popups <-  leafpop::popupGraph(temp_plot_list, type = "svg")
 saveRDS(temp_popups, "out/temp_popups.rds")
-=======
-pal <- colorNumeric(palette = "YlGn", domain = reg_dist$n.kg.pop.sum)
->>>>>>> 1f2e3d7a1d411967a51fee20c3b454a554bdb142
+
+popup_options <-  popupOptions(autoPan = TRUE,
+                               keepInView = TRUE,
+                               closeOnClick = TRUE,
+                               autoPanPaddingTopLeft = c(120, 20),
+                               autoPanPaddingBottomRight = c(120,20))
+
 
 leaflet(reg_dist, width = "900px", height = "550px") %>%
   setView(lng = -126.5, lat = 54.5, zoom = 4) %>%
@@ -323,37 +228,33 @@ leaflet(reg_dist, width = "900px", height = "550px") %>%
                    options = providerTileOptions(minZoom = 5, maxZoom = 10)) %>%
   addPolygons(color = "#7f7f7f", weight = 1, smoothFactor = 0.5,
               opacity = 1.0, fillOpacity = 0.6,
-<<<<<<< HEAD
               fillColor = ~ pal(n.kg.pop),
-=======
-              fillColor = ~ pal(n.kg.pop.sum),
->>>>>>> 1f2e3d7a1d411967a51fee20c3b454a554bdb142
-              #fillColor = ~ colorQuantile("YlOrRd", n.pop.sum)(n.pop.sum),
               highlightOptions = highlightOptions(fillOpacity = 0.9,
-                                    weight = 2,
-                                    bringToFront = FALSE),
+                                                  weight = 2,
+                                                  bringToFront = FALSE),
               label = labels,
               labelOptions = labelOptions(direction = "auto",
-                                          textsize = "12px")#,
-              #popup = popups,
-              #popupOptions = popup_options
- ) %>%
+                                          textsize = "12px"),
+              popup = temp_popups,
+              popupOptions = popup_options
+  ) %>%
   addEasyButton(easyButton(
     icon = htmltools::span('Reset Map'),
     onClick = JS("function(btn, map) {
-                     map.closePopup();
-                     map.setView({lon: -126.5, lat: 54.5}, 5);
-                     // Close labels - they stay stuck open on mobile
-                     map.eachLayer(function (layer) {
-                         if (layer instanceof L.Polygon) {
-                           layer.label.close();
-                         }
-                     });
-                  }"),
+                 map.closePopup();
+                 map.setView({lon: -126.5, lat: 54.5}, 5);
+                 // Close labels - they stay stuck open on mobile
+                 map.eachLayer(function (layer) {
+                 if (layer instanceof L.Polygon) {
+                 layer.label.close();
+                 }
+                 });
+                 }"),
     position = "bottomleft", id = "reset-button")) %>%
   addLegend(position = "bottomleft", pal = pal, values = ~n.kg.pop,
             title = htmltools::HTML("Recycled<br/>material<br/>kg per<br/>capita"),
             labFormat = labelFormat(suffix = , between = "", digits = 3))
+
 
 
 # add pop up ?
@@ -386,5 +287,118 @@ leaflet(reg_dist, width = "900px", height = "550px") %>%
 # this needs some work still.
 
 
+# financial equations  ---------------------------------
 
+#1) calculate the tonnes per organization
+
+#unique(all.regions$measure)
+tonnes <- c("Absolute Collection-Weight Collected (Tonnes)-",
+            "Absolute collection - Regular products -Weight (kg)-",
+            "Absolute collection - batteries (kg)",
+            "Estimated Tonnes Collected", "tonnes of ppp",
+            "Absolute Collection-Weight Collected (kg)-")
+
+# get tonnes per recycling type
+tot.region <- all.regions %>%
+  filter(measure %in% tonnes) %>%
+  filter(!regional_district == "Provincial Total") %>%
+  group_by(organization, type, measure, regional_district) %>%
+  summarise_all(sum, na.rm = TRUE) %>%
+  gather("year", "n", 5:length(.)) %>%
+  filter(!n == 0) %>%
+  mutate(n.kg = ifelse(str_detect(measure,"onnes"), n * 1000, n)) %>%
+  group_by(organization, type,year) %>%
+  summarise(n.kg.sum = sum(n.kg))
+
+# get financial details per organization and type
+
+to.keep = c("Expenditure-Total", "Expenditures", "Revenue-Total","Revenues",
+            "Revenue-Total (Including Deposits Charged)",
+            "Expenditure-Total (Including Deposits Returned)",
+            "Balance (Including Deposits Charged/Returned)" )
+
+fdata <- all.finance %>%
+  gather("year", "n", 4:length(.)) %>%
+  mutate(n.m = n/1000000) %>%
+  group_by(organization, type, measure, year) %>%
+  summarise(total.m = sum(n.m,na.rm = TRUE)) %>%
+  filter(measure %in% to.keep) %>%
+  mutate(measure_consol = ifelse(measure %in%
+                                   c("Expenditure-Total","Expenditures",
+                                     "Expenditure-Total (Including Deposits Returned)"),"Expenditure",
+                                 ifelse(measure %in% c("Revenue-Total","Revenues",
+                                                       "Revenue-Total (Including Deposits Charged)"),"Revenue",NA) )) %>%
+  filter(measure_consol == "Expenditure")
+
+# calculate cost per tonne
+cost.per.tonne <- tot.region %>%
+  left_join(fdata) %>%
+  select(c(organization, type, year, n.kg.sum, total.m)) %>%
+  filter(!is.na(total.m)) %>%
+  filter(! total.m == 0) %>%
+  mutate(c.p.tonne = (n.kg.sum * 0.001)/total.m)
+
+ggplot(cost.per.tonne, aes(x = year, y = c.p.tonne, group = organization))+
+  geom_point(aes(colour = type))+
+  geom_line(aes(colour = factor(type))) +
+  labs(title="Tonnes Recycled per million ($)",
+     x = "Year", y = "Amount recycled per million dollars (tonnes)") +
+  theme(axis.text.x = element_text(angle = 90)) +  scale_y_log10()
+
+
+
+
+# basic bar chart
+ggplot(fdata, aes(year, total, fill = measure_consol)) +
+  facet_wrap(~ type) +
+  geom_bar(stat="identity", position="dodge") +
+  labs(title="Revenue and expenditure per year",
+       x = "Year", y = "Amount ($1,000,000)") +
+  theme(axis.text.x = element_text(angle = 90))
+
+# filter for revenue only
+rdata <- fdata %>%
+  filter(measure_consol == "Revenue") %>%
+  filter(total > 0)
+
+ggplot(rdata, aes(year, total, group = type)) +
+  geom_line(aes(colour = type)) +
+  geom_point(aes(colour = factor(type)))+
+  labs(title="Annual Revenue per recycling type",
+       x = "Year", y = " Amount ($1,000,000)") +
+  theme(axis.text.x = element_text(angle = 90)) #+
+scale_y_log10()
+
+# Add a balance data set
+bdata <- fdata  %>%
+  group_by(type) %>%
+  filter(!is.na(measure_consol)) %>%
+  select(- measure)%>%
+  filter(total > 0)%>%
+  spread(., measure_consol, total) %>%
+  mutate(Balance = Revenue - Expenditure)
+
+# Balance and line type
+ggplot(bdata, aes(year, Balance, group = type)) +
+  geom_hline(yintercept =  0, colour = "dark grey", linetype="dashed") +
+  geom_line(aes(colour = type)) +
+  geom_point(aes(colour = factor(type)))+
+  labs(title="Annual Balance per recycling type",
+       x = "Year", y = " Amount ($1,000,000)") +
+  theme(axis.text.x = element_text(angle = 90))
+
+# bar chart
+ggplot(bdata, aes(year, Balance, fill = type)) +
+  facet_wrap(~ type) +
+  geom_bar(stat="identity", position="dodge") +
+  labs(title="Annual Balance",
+       x = "Year", y = " Amount ($1,000,000)") +
+  theme(axis.text.x = element_text(angle = 90))
+
+# bar chart
+ggplot(bdata, aes(year, Balance, fill = type)) +
+  geom_bar(stat="identity", position="dodge") +
+  labs(title="Annual Balance",
+       x = "Year", y = " Amount ($1,000,000)") +
+  theme(axis.text.x = element_text(angle = 90))
 
