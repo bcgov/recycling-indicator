@@ -291,8 +291,71 @@ leaflet(reg_dist, width = "900px", height = "550px") %>%
 
  This figure still needs some work but could provide some discussion on what is possible. 
  
- # Calculate the financial costs
+# Financial costs
+
 Reporting the financial costs may be difficult due to the variation and non-standrard reporting. Bob suggested reporting on the cost per tonne for a given type of recycling. This provides a standard measure in which multiple provinces could compare in regard to eco-fees and incentive programs.
+
  
- 
+```{r financial_data_summary, include = TRUE, echo = TRUE}
+
+#unique(all.regions$measure)
+tonnes <- c("Absolute Collection-Weight Collected (Tonnes)-",
+            "Absolute collection - Regular products -Weight (kg)-",
+            "Absolute collection - batteries (kg)",
+            "Estimated Tonnes Collected", "tonnes of ppp",
+            "Absolute Collection-Weight Collected (kg)-")
+
+# get tonnes per recycling type 
+tot.region <- all.regions %>%
+  filter(measure %in% tonnes) %>%
+  filter(!regional_district == "Provincial Total") %>%
+  group_by(organization, type, measure, regional_district) %>%
+  summarise_all(sum, na.rm = TRUE) %>%
+  gather("year", "n", 5:length(.)) %>%
+  filter(!n == 0) %>%
+  mutate(n.kg = ifelse(str_detect(measure,"onnes"), n * 1000, n)) %>%
+  group_by(organization, type,year) %>%
+  summarise(n.kg.sum = sum(n.kg)) 
+
+
+# get financial details per organization and type   
+all.finance <- read_csv(file.path('data','all.finance.csv'))
+
+to.keep = c("Expenditure-Total", "Expenditures", "Revenue-Total","Revenues",
+            "Revenue-Total (Including Deposits Charged)",
+            "Expenditure-Total (Including Deposits Returned)",
+            "Balance (Including Deposits Charged/Returned)" )
+
+fdata <- all.finance %>%
+  gather("year", "n", 4:length(.)) %>%
+  mutate(n.m = n/1000000) %>%
+  group_by(organization, type, measure, year) %>%
+  summarise(total.m = sum(n.m,na.rm = TRUE)) %>%
+  filter(measure %in% to.keep) %>%
+  mutate(measure_consol = ifelse(measure %in%
+                                   c("Expenditure-Total","Expenditures",
+                                     "Expenditure-Total (Including Deposits Returned)"),"Expenditure",
+                                 ifelse(measure %in% c("Revenue-Total","Revenues",
+                                                       "Revenue-Total (Including Deposits Charged)"),"Revenue",NA) )) %>%
+  filter(measure_consol == "Expenditure")
+
+# calculate cost per tonne
+cost.per.tonne <- tot.region %>%
+  left_join(fdata) %>%
+  select(c(organization, type, year, n.kg.sum, total.m)) %>%
+  filter(!is.na(total.m)) %>%
+  filter(! total.m == 0) %>%
+  mutate(c.p.tonne = total.m * 1000 /(n.kg.sum * 0.001))
+
+ggplot(cost.per.tonne, aes(x = year, y = c.p.tonne, group = organization))+
+  geom_point(aes(colour = type))+
+  geom_line(aes(colour = factor(type))) +
+  labs(title="Cost per tonne of recycled material",
+     x = "Year", y = "Cost ($1,000) per tonnes ") +
+  theme(axis.text.x = element_text(angle = 90)) #+  scale_y_log10()
+
+
+```
+
+Financial costs are based on total expenditure and tonnes of recycled material. In many cases there is not data available for all organizations contributing to the type of recycling (beverage and electronic). There is no financial data provided from pharmaceuticals, beverage expenditure results are only available for Encorp. Electronics is recorded for two organizations (MMR) and CEAS
 
