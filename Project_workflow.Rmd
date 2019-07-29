@@ -36,13 +36,10 @@ There are seven sets of data assessed for this indicator;
 - Lead-Acid Batteries 
 - Packaging and Printed Paper (ppp)
 
-In most cases data was combined with BC population data to calculate per person values per region. BC population data was manually extracted per regional district (2000 - 2018) using the [BC Population tool](https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx). Data used in the Oil, lubricant, antifreeze etc measure was already summarised to a per capita measure. Raw data is available within the pdf reports if required.
+BC population data was manually extracted per regional district (2000 - 2018) using the [BC Population tool](https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx). Data used in the Oil, lubricant, antifreeze etc measure was already summarised to a per capita measure. Raw data is available within the pdf reports if required.
 
-Data will be summarised by 1) tonnage per region per capita and 2) financial trends over time. As not all measures are documented over the same time periods we refined trends from 2014 - 2017.
-
-Regional tonnage data (weight collected) includes : Beverage (2000 - 2017) 
-
-Tires (already calculated per capita ? in kg - do we want to include this )
+Data will be summarised by 1) tonnage per region per capita and 2) financial estimates will be calculated cost per tonnes per unit type. 
+As not all measures are documented over the same time periods we refined trends from 2014 - 2017.
 
 
 ### Work flow: 
@@ -51,16 +48,251 @@ Tires (already calculated per capita ? in kg - do we want to include this )
 
 2) Data is then loading into R and inital summaries and exploration is conducted using the '01_load.R' script **. A graphical html output of these analysis can be run using the ('Project_notes.Rmd' file)
 
+3) Apon further discussions we decided to concentrate reporting on regional amounts per capita (ie: tonnes per capita). This would be per type and combining all types. This had the advantage of enabling reporting over multiple years where data was available (eg: beverages). 
 
-```{r , echo = TRUE, include = TRUE}
+4) To decicepher more detailed data we will contact the data custodians directly. 
 
 
+5) Bob also suggested calculating the cost per tonne of recycling per type to give an equivalent measure for other provinces etc. 
+
+
+
+```{r , echo = TRUE, include = FALSE}
+
+## Load in libraries
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(stringr)
+library(bcmaps)
+library(sf)
+library(envreportutils)
+library(leaflet)
+library(bcmaps)
+library(dplyr)
+library(rmapshaper)
+library(mapview)
+library(purrr)
+library(readr)
+library(here)
+library(lwgeom)
 
 
 ```
 
+```{r load data,echo = TRUE, include = FALSE}
+
+## Load  data files
+data.dir <- soe_path("Operations ORCS/Data - Working/sustainability/EPR/")# to run on O:/
+pop.dir <- file.path("C:/Temp/Github/recycling-indicator/data")
+
+# Read in population data -------------------------------
+# BC Pop Stats (ignore and get directly from Stats Can)
+# https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx
+# manual export of population per regional district (2000 - 2018) and store in data folder
+
+pop.0 <- read_csv(file.path("C:/Temp/Github/recycling-indicator/data",'Population_Estimates.csv'))
+
+pop <- pop.0 %>%
+  mutate(regional_district = gsub("-", " ", `Regional District`),
+         pop = Total,
+         year = as.character(Year)) %>%
+  select(-c('X1','Gender','Regional District','Total',"Year")) %>%
+  mutate(regional_district = ifelse(regional_district == "Powell River",
+                                    "Qathet",
+                                    ifelse(regional_district == "Stikine",
+                                           "Kitimat Stikine",
+                                           ifelse(regional_district == "Comox Valley",
+                                                  "Comox Strathcona",
+                                                  ifelse(regional_district == "Strathcona",
+                                                         "Comox Strathcona",
+                                                         regional_district)))))
+
+pop <- pop %>%
+  group_by(regional_district, year) %>%
+  summarize(pop = sum(pop))
+
+all.regions <- read_csv(file.path('data','all.regions.csv'))
+all.units <- read_csv(file.path('data','all.units.csv'))
+all.finance <- read_csv(file.path('data','all.finance.csv'))
+
+```
+
+## Regional data availability 
+
+The following recycling types contained weight information (tonnes/kg) at a regional scale ; Beverage (2007-2017) , Electrical (Major Appliance recycling: 2015-2017, Batteries (2010 - 2017), Canadian Electrical Stewardship Association (2011- 2017)), Pharmaceutical (2008 - 2017) and PPP (packaging, printed, paper (2015-2017)). The other measures were collected at a provincial scale (Tires, Lead-Acid Batteries) or are reported in non-compariable unites (no. of items or tubskids) and require further investigation. 
+
+We investigated the patterns of recycling per capita for those metrics where comparable data was available (Beverage, Electrical, Pharmaceutical and PPP). It should be noted Pharmeceuticals represent consumable recycling products (i.e an increase in recycling has more complex interpretation)
 
 
+```{r Load regional data, echo = TRUE, include = TRUE}
+all.regions <- read_csv(file.path('data','all.regions.csv'))
 
+# select the measures where weight is equivalent 
+tonnes <- c("Absolute Collection-Weight Collected (Tonnes)-",
+            "Absolute collection - Regular products -Weight (kg)-",
+            "Absolute collection - batteries (kg)",
+            "Estimated Tonnes Collected", "tonnes of ppp",
+            "Absolute Collection-Weight Collected (kg)-")
+
+# regions per type for all years 
+type.region <- all.regions %>%
+  filter(measure %in% tonnes) %>%
+  select(-c(organization)) %>%
+  group_by(type, measure, regional_district) %>%
+  summarise_all(sum, na.rm = TRUE) %>%
+  gather("year", "n", 4:length(.)) %>%
+  filter(!n == 0) %>%
+  mutate(n.kg = ifelse(str_detect(measure,"onnes"), n * 1000, n)) %>%
+  group_by(type, regional_district, year) %>%
+  summarise(n.kg.sum = sum(n.kg)) %>%
+  left_join(pop, by = c("regional_district","year")) %>%
+  filter(!regional_district == "Provincial Total") %>%
+  mutate(n.kg.pop = n.kg.sum / pop)
+
+## Basic plot one off plots for weight per capita per year
+ggplot(type.region, aes(year, n.kg.pop)) +
+  facet_wrap(~ type) +
+  geom_bar(stat = "identity", position="dodge") +
+  labs(title = "Average recycling (kg) per capita",
+       x = "Year", y = "weight per capita (kg)") +
+  theme(axis.text.x = element_text(angle = 90))
+
+```
+
+The amount of recycled goods per capita varies greatly with Pharmaceuticals showing very low numbers. Annual changes in recycling over years also suggests rolling up all measures would result in some artificial patterns, unless limited to 2015 - 2017 data only. 
+
+
+We can take the beverage as an example and use this to show regional differences over time. 
+
+```{r figure prep, include = TRUE, echo=TRUE}
+
+# calculate the provincial average per year for beverages
+bc.kg.per.cap <- type.region %>%
+  na.omit() %>%
+  filter(type == "bev") %>%
+  group_by(type, year) %>%
+  summarise(bc_ave = mean(n.kg.pop))
+
+# write a function to plot each of the regions over time for beverages
+temp_plots <- function(rdata, district) {
+  make_plot <- ggplot () +
+    geom_bar(data = rdata, aes(x = year, y = n.kg.pop),stat = "identity") +
+    geom_point(data = bc.kg.per.cap, aes(x = year, y = bc_ave), colour = "red") +
+    labs(x = "Year", y = "kg per capital") + # Legend text
+    ggtitle(paste("Reported Recycling for "
+                  , district
+                  ,sep = "")) +
+    theme_soe() + theme(plot.title = element_text(hjust = 0.5), # Centre title
+                        legend.position = "bottom",
+                        plot.caption = element_text(hjust = 0)) # L-align caption
+  make_plot
+}
+
+# Lopo through the regional districts 
+
+names <- unique(type.region$regional_district)
+temp_plot_list <- vector(length = length(names), mode = "list")
+
+plots <- for (i in 1:length(names)) {
+  district <- names[i]
+  rdata <- type.region %>% filter(type == "bev", regional_district == district)
+  p <- temp_plots(rdata, district)
+  temp_plot_list[[i]] <- p
+  ggsave(p, file = paste0("out/", district, ".svg"))
+}
+
+
+reg_dist <- combine_nr_rd() %>%
+  rmapshaper::ms_simplify(0.005) %>%
+  st_intersection(bc_bound()) %>%
+  st_transform(4326) %>%
+  group_by(ADMIN_AREA_NAME,ADMIN_AREA_ABBREVIATION) %>%
+  summarize()
+
+reg_dist$ADMIN_AREA_NAME[which(reg_dist$ADMIN_AREA_NAME %in%
+                                 c("Comox Valley Regional District", "Strathcona Regional District"))] <- "Comox-Strathcona"
+
+reg_dist %<>%
+  group_by(ADMIN_AREA_NAME) %>%
+  summarise(do_union = FALSE) %>%
+  ungroup() %>%
+  st_make_valid() %>%
+  st_collection_extract("POLYGON")
+
+### match district names by removing words and hyphenating
+reg_dist$ADMIN_AREA_NAME %<>%
+  str_replace(" Regional District", "") %>%
+  str_replace("Regional District of ", "") %>%
+  str_replace("-", " ") %>%
+  str_replace("qathet", "Qathet")
+#mapview(reg_dist)
+
+reg_dist <- reg_dist %>%
+  left_join(type.region, by = c("ADMIN_AREA_NAME" = "regional_district")) %>%
+  mutate(regional_district = ADMIN_AREA_NAME)
+
+# need to adjust these labels to kg.per.cap (not %)
+labels <- sprintf(
+  "<strong>%s (%s%%)</strong>",
+  tools::toTitleCase(tolower(reg_dist$regional_district)),
+  round(reg_dist$n.kg.pop, 0)
+) %>% lapply(htmltools::HTML)
+
+pal <- colorNumeric(palette = "YlGn", domain = reg_dist$n.kg.pop)
+
+# set up popup list
+temp_popups <-  leafpop::popupGraph(temp_plot_list, type = "svg")
+saveRDS(temp_popups, "out/temp_popups.rds")
+
+popup_options <-  popupOptions(autoPan = TRUE,
+                               keepInView = TRUE,
+                               closeOnClick = TRUE,
+                               autoPanPaddingTopLeft = c(120, 20),
+                               autoPanPaddingBottomRight = c(120,20))
+
+
+leaflet(reg_dist, width = "900px", height = "550px") %>%
+  setView(lng = -126.5, lat = 54.5, zoom = 4) %>%
+  addProviderTiles("OpenStreetMap.BlackAndWhite",
+                   options = providerTileOptions(minZoom = 5, maxZoom = 10)) %>%
+  addPolygons(color = "#7f7f7f", weight = 1, smoothFactor = 0.5,
+              opacity = 1.0, fillOpacity = 0.6,
+              fillColor = ~ pal(n.kg.pop),
+              highlightOptions = highlightOptions(fillOpacity = 0.9,
+                                                  weight = 2,
+                                                  bringToFront = FALSE),
+              label = labels,
+              labelOptions = labelOptions(direction = "auto",
+                                          textsize = "12px"),
+              popup = temp_popups,
+              popupOptions = popup_options
+  ) %>%
+  addEasyButton(easyButton(
+    icon = htmltools::span('Reset Map'),
+    onClick = JS("function(btn, map) {
+                 map.closePopup();
+                 map.setView({lon: -126.5, lat: 54.5}, 5);
+                 // Close labels - they stay stuck open on mobile
+                 map.eachLayer(function (layer) {
+                 if (layer instanceof L.Polygon) {
+                 layer.label.close();
+                 }
+                 });
+                 }"),
+    position = "bottomleft", id = "reset-button")) %>%
+  addLegend(position = "bottomleft", pal = pal, values = ~n.kg.pop,
+            title = htmltools::HTML("Recycled<br/>material<br/>kg per<br/>capita"),
+            labFormat = labelFormat(suffix = , between = "", digits = 3))
+
+
+```
+
+ This figure still needs some work but could provide some discussion on what is possible. 
+ 
+ # Calculate the financial costs
+Reporting the financial costs may be difficult due to the variation and non-standrard reporting. Bob suggested reporting on the cost per tonne for a given type of recycling. This provides a standard measure in which multiple provinces could compare in regard to eco-fees and incentive programs.
+ 
  
 
