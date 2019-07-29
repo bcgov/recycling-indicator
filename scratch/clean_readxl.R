@@ -290,6 +290,25 @@ elect_mmr <- read_elect_region (excel_file,"B664:N691","MMR")
 elect_compile <- rbind(elect_CESA, elect_smoke, elect_thermo,
                        elect_lamp, elect_call2cell, elect_mmr)
 
+# read electric financial
+read_elect_financial <- function(file, range,org) {
+  cols <- ncols_from_range(range)
+  read_excel(file, sheet = "Elect(2007-2017)",
+             range = range,
+             col_types = c("text", "text", rep("numeric", cols - 2)),
+             col_names = c("measure", "regional_district",
+                           seq(2007, length.out = cols - 2))) %>%
+    mutate(regional_district = gsub("-", " ", regional_district),
+           organization = org,
+           type = "elect") %>%
+    select(organization, type, measure, everything())
+}
+
+F_elect_CESA <- read_elect_financial(excel_file,"B129:N133","CESA")
+F_elect_mmr <- read_elect_financial(excel_file,"B711:N716","MMR")
+
+F_elect_compile <- rbind(F_elect_CESA,F_elect_mmr)
+
 # Pharm ------------------------------------------------
 
 read_pharm_recovery <- function(file, range) {
@@ -362,7 +381,7 @@ ppp_financial <- read_ppp_financial(excel_file,"A15:E16")
 # combined datasets into three datasets --------------
 
 all.finance <- bind_rows(financial, oil_financial, tire_financial,
-                         ppp_financial, pfp_financial)
+                         ppp_financial, pfp_financial, F_elect_compile)
 
 all.regions <- bind_rows(priority_raw, recovery_pp, pfp_recovery,
                          elect_compile, ppp_recovery, pharm_recovery)
@@ -412,3 +431,4 @@ write.csv(all.regions, paste('data', "all.regions.csv", sep = "/"),
 
 write.csv(all.units, paste('data', "all.units.csv", sep = "/"),
           row.names = FALSE )
+
