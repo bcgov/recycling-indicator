@@ -42,7 +42,7 @@ Data will be summarised by 1) tonnage per region per capita and 2) financial est
 As not all measures are documented over the same time periods we refined trends from 2014 - 2017.
 
 
-### Work flow: 
+## Work flow: 
 
 1) All raw data is extracted from excel worksheets and combined into a three dataframes using the 'clean.readxl.R' script. The dataframes are 'all.finance', 'all.units', 'all.regions'. 
 
@@ -119,7 +119,7 @@ all.finance <- read_csv(file.path('data','all.finance.csv'))
 
 ```
 
-## Regional data availability 
+## 1) Regional District data
 
 The following recycling types contained weight information (tonnes/kg) at a regional scale ; Beverage (2007-2017) , Electrical (Major Appliance recycling: 2015-2017, Batteries (2010 - 2017), Canadian Electrical Stewardship Association (2011- 2017)), Pharmaceutical (2008 - 2017) and PPP (packaging, printed, paper (2015-2017)). The other measures were collected at a provincial scale (Tires, Lead-Acid Batteries) or are reported in non-compariable unites (no. of items or tubskids) and require further investigation. 
 
@@ -289,9 +289,9 @@ leaflet(reg_dist, width = "900px", height = "550px") %>%
 
 ```
 
- This figure still needs some work but could provide some discussion on what is possible. 
+This figure still needs some work but could provide some discussion on what is possible. 
  
-# Financial costs
+## 2) Financial costs
 
 Reporting the financial costs may be difficult due to the variation and non-standrard reporting. Bob suggested reporting on the cost per tonne for a given type of recycling. This provides a standard measure in which multiple provinces could compare in regard to eco-fees and incentive programs.
 
