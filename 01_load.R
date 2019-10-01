@@ -73,7 +73,7 @@ pop <- pop %>%
 # read in spatial data ------------------------------------------------------------
 
 reg_dist <- combine_nr_rd() %>%
-  rmapshaper::ms_simplify(0.005) %>%
+  rmapshaper::ms_simplify(0.01) %>%
   st_intersection(bc_bound()) %>%
   st_transform(4326) %>%
   group_by(ADMIN_AREA_NAME,ADMIN_AREA_ABBREVIATION) %>%
