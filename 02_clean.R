@@ -10,12 +10,10 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and limitations under the License.
 
-
 library(dplyr)
 library(tidyr)
 library(stringr)
 library(ggplot2)
-
 
 if (!exists("pop")) source("01_load.R")
 
@@ -41,7 +39,7 @@ region <- all.regions %>%
   filter(!regional_district == "Provincial Total") %>%
   mutate(n.kg.pop = n.kg.sum / pop)
 
-saveRDS(region, file.path("out","region.R"))
+saveRDS(region, file.path("data","region.rds"))
 
 
 # get tonnes per recycling type
@@ -57,7 +55,7 @@ tot.region <- all.regions %>%
   group_by(organization, type,year) %>%
   summarise(n.kg.sum = sum(n.kg))
 
-saveRDS(region, file.path("out","region.R"))
+saveRDS(tot.region , file.path("data","tot.region.rds"))
 
 
 ## format financial dataset --------------------
@@ -106,4 +104,4 @@ reg_dist <- reg_dist %>%
   left_join(region, by = c("ADMIN_AREA_NAME" = "regional_district")) %>%
   mutate(regional_district = ADMIN_AREA_NAME)
 
-
+saveRDS(reg_dist , file.path("data","reg_dist.rds"))
