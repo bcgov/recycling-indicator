@@ -1,48 +1,116 @@
 ---
-topic: # One of: "air", "water", "plants-and-animals", "climate-change", "land", "sustainability"
-title: "Indicator Title"
-bibliography: example.bib
-output: envreportutils.internal::print_ver
-params:
-  draft: TRUE
+output:
+  html_document:
+    css: "assets/leaflet_style.css"
 ---
 
-<!--
-Instructions:
-
-If you don't have a bibliography, delete the bibliography line in the YAML header.
-If you do have a bibliography, insert the filename. In-text citations are done as:
-[@Moe-etal-1999]. End the document with the bibliography heading (e.g., # References).
--->
 
 ```{r echo = FALSE, include=params$draft, results='asis'}
-cat("\\begin{center}
-\\fbox{
-  \\begin{minipage}[c]{14cm}
- 
-   \\begingroup\\centering{\\textbf{DRAFT – NOT FOR DISTRIBUTION}}
-   
-    \\endgroup
-    
-    \\vspace{1mm}
-   
-    \\text{This DRAFT public reporting product is under review and may change. It is not intended}
-    \\text{to be shared, cited or used at this time. Please contact Environmental Reporting BC program}
-    \\text{staff if you have questions about the content. }
-   
-  \\end{minipage}
-}
-\\end{center}")
+
+knitr::opts_chunk$set(echo = TRUE)
+
+library(here)
+library(tidyverse)
+library(leaflet)
+library(sf)
+library(geojsonio)
+library(htmltools)
+library(mapview)
+library(DT)
+library(rmapshaper)
+library(viridis)
+
+# SOE + popups
+library(envreportutils)
+
+# load data 
+
+
+reg_dist <- read_rds("./data/reg_dist.rds") 
+
+
 ```
 
-Lorem ipsum dolor sit amet, maximus risus, imperdiet mi ac. Vitae tempor ultrices, odio euismod fames tempus at, sodales, eu lacus. Sit ac pellentesque eget ligula sociis mi sociis taciti sed nec. Sodales leo nam himenaeos a et. Porttitor adipiscing risus donec rhoncus est ut eget eu. Feugiat pellentesque donec, vitae neque. Sit faucibus eget nec quis turpis orci. Et, ultrices aptent magnis.
+
+
+# {.tabset .tabset-fade}
+
+```{r grizz_map, warning=FALSE, echo=FALSE}
+recmap <- leaflet(width = "900px", height = "600px", 
+                    options = leafletOptions(minZoom = 5)) %>%  # generate leaflet map
+  addProviderTiles(providers$Stamen.Terrain, group = "Terrain") %>%
+  add_bc_home_button() %>%
+  set_bc_view()
+
+```
+
+## Recycling Per Region 
+```{r}
+# define the map styling
+
+palette1 <- colorNumeric(palette = 'viridis', reg_dist$n.kg.pop, reverse = TRUE)
+
+# define labels 
+#labels <- reg_dist$regional_district
+
+
+
+
+# Popup for population tab
+popup_text2 <- dplyr::select(grizzdata_full, gbpu_name, gbpu.pop, 
+                               pop_density, use_area_sq_km,
+                              area_sq_km) %>% 
+  rename("Population Name" = gbpu_name,
+         "Population Size (Adults)" = gbpu.pop,
+         "Population Density (Adults/1000 km^2)" = pop_density,
+         "Area of Useable Habitat (km^2)" = use_area_sq_km,
+         "Total Area of GBPU (km^2)" = area_sq_km) 
+
+st_geometry(popup_text2) <- NULL 
+
+population_popup <- leafpop::popupTable(popup_text2,
+                                   row.numbers = F, 
+                                   feature.id = F)
+
+```
 
 
 ```{r echo=FALSE, message=FALSE}
-library(ggplot2)
-ggplot(mtcars, aes(x = hp, y = mpg)) + 
-  geom_point() + 
-  geom_smooth()
+
+recmap %>%
+  addPolygons(data = reg_dist, group = "Regional Districts",
+              stroke = T, weight = 1, color = "black",
+              fillOpacity = 0.5,
+              fillColor = ~ palette1(n.kg.pop),
+              highlightOptions = highlightOptions(fillOpacity = 0.9,
+                                                  weight = 2,
+                                                  bringToFront = FALSE),
+              label = labels,
+              labelOptions = labelOptions(direction = "auto",
+                                          textsize = "12px")
+              #popup = temp_popups,
+              #popupOptions = popup_options
+  ) %>%
+  addEasyButton(easyButton(
+    icon = htmltools::span('Reset Map'),
+    onClick = JS("function(btn, map) {
+                 map.closePopup();
+                 map.setView({lon: -126.5, lat: 54.5}, 5);
+                 // Close labels - they stay stuck open on mobile
+                 map.eachLayer(function (layer) {
+                 if (layer instanceof L.Polygon) {
+                 layer.label.close();
+                 }
+                 });
+                 }"),
+    position = "bottomleft", id = "reset-button")) 
+#%>%
+#   addLegend(position = "bottomleft", pal = palette1, values = ~ n.kg.pop,
+#            title = htmltools::HTML("Recycled<br/>material<br/>kg per<br/>capita"),
+#            labFormat = labelFormat(suffix = , between = "", digits = 3))
+
+
+
 ```
 
 Cum vivamus penatibus sed mus fringilla non sociosqu taciti ut. Sed, semper lacus justo ultricies penatibus praesent. Tortor vivamus fermentum libero, libero urna montes orci luctus ligula? Tellus et mauris sed a in lacinia imperdiet. Sed nec penatibus sed at mauris etiam. Interdum morbi arcu vitae lectus cubilia eros, imperdiet felis. Nisl, lacinia vel, nisl, rutrum ac, elementum felis. Dui ante eros ex mi, interdum velit accumsan sociosqu, tempus. Erat vulputate potenti nascetur. Malesuada, curabitur, leo himenaeos, molestie euismod sit. In vitae sollicitudin adipiscing commodo.
