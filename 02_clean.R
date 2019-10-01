@@ -81,8 +81,6 @@ fdata <- all.finance %>%
                                                        "Revenue-Total (Including Deposits Charged)"),"Revenue",NA) )) %>%
   filter(measure_consol == "Expenditure")
 
-
-
 # format spatial data : reg_dist
 
 reg_dist$ADMIN_AREA_NAME[which(reg_dist$ADMIN_AREA_NAME %in%
@@ -108,4 +106,4 @@ reg_dist <- reg_dist %>%
   left_join(region, by = c("ADMIN_AREA_NAME" = "regional_district")) %>%
   mutate(regional_district = ADMIN_AREA_NAME)
 
-mapview::mapview(reg_dist)
+
