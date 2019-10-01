@@ -14,11 +14,73 @@
 #summarise the data per region and all BC totals
 
 
+if (!exists("region")) load("data/region.rds")
+
+
 # calculate the provincial average per kg
 bc.kg.per.cap <- region %>%
   na.omit() %>%
   group_by(year) %>%
   summarise(bc_ave = mean(n.kg.pop))
+
+
+# join the regional and prov. ave data and calculate the difference
+diff.df <- region %>%
+  left_join(bc.kg.per.cap, by = 'year') %>%
+  mutate(delta = n.kg.pop - bc_ave) %>%
+  mutate(response = ifelse(delta < 0,"below", "above")) %>%
+  mutate(response = ifelse(delta == 0,"No data", response))
+
+
+#
+# ggplot(diff.df, aes(x = regional_district,
+#                      y = delta,
+#                      label = delta)) +
+#      facet_wrap(~year) +
+#    geom_bar(stat ='identity', aes(fill = response), width = .5)  +
+#    scale_fill_manual(name ="Total Recycling Quantity",
+#                      labels = c("Above Average", "Below Average", "No Data"),
+#                      values = c("above" = "#008000", "below"="#FF0000", "no data" = 'grey')) +
+#    labs(title= "Regional difference from BC Ave",
+#         subtitle = " Bev units per capita") +
+#    coord_flip()
+
+# create a pop-up map per region based on difference to BC average value
+
+
+region_list <- unique(region$regional_district)
+region_plot_list <- vector(length = length(region_list), mode = "list")
+names(region_plot_list) <- region_list
+
+
+# Create plotting function
+temp_plots <- function(data, name) {
+    make_plot <- ggplot(data) +
+      geom_bar(aes(x = year , y = n.kg.pop), stat = "identity") +
+      geom_point(aes(x = year, y = bc_ave), colour = "red") +
+      labs(x = "Year", y = "kg per capital") + # Legend text
+      ggtitle(paste("Reported Recycling for "
+                    , n
+                    ,sep = "")) +
+      theme_soe() + theme(plot.title = element_text(hjust = 0.5), # Centre title
+                          legend.position = "bottom",
+                          plot.caption = element_text(hjust = 0)) # L-align caption
+    make_plot
+  }
+
+  # Lopo through the regional districts
+
+plots <- for (n in region_list) {
+   print(n)
+   #n <- region_list [1]
+   data <- filter(diff.df, regional_district == n)
+   #rdata <- type.region %>% filter(type == "bev", regional_district == district)
+    p <- temp_plots(data, n)
+    region_plot_list [[n]] <- p
+    ggsave(p, file = paste0("out/", n, ".svg"))
+  }
+
+
 
 
 
@@ -63,18 +125,12 @@ ggplot(fdata, aes(year, total.m, fill = measure_consol)) +
  ggplot(region, aes(year, n.kg.pop)) +
    facet_wrap(~ regional_district) +
    geom_bar(stat = "identity", position="dodge") +
-   labs(title = "Regional weight of recycling (tonnes) per capita",
+   labs(title = "Regional of recycling (tonnes) per capita",
         x = "Year", y = "weight per cap (kg)") +
    theme(axis.text.x = element_text(angle = 90)) +
    theme_soe_facet()
 
 
-# join the regional and prov. ave data and calculate the difference
-diff.df <- region %>%
-   left_join(bc.kg.per.cap, by = 'year') %>%
-   mutate(delta = n.kg.pop.sum - bc_ave) %>%
-   mutate(response = ifelse(delta < 0,"below", "above")) %>%
-   mutate(response = ifelse(delta == 0,"No data", response))
 
 # ## something not quite right about this plot (2007/2008/and 2009 all look identical? )
 # ## may also want to split out the consumables and non-consumables.
