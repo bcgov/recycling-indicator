@@ -37,7 +37,8 @@ region <- all.regions %>%
   summarise(n.kg.sum = sum(n.kg)) %>%
   left_join(pop, by = c("regional_district","year")) %>%
   filter(!regional_district == "Provincial Total") %>%
-  mutate(n.kg.pop = n.kg.sum / pop)
+  mutate(n.kg.pop = n.kg.sum / pop,
+         year = as.numeric(year))
 
 saveRDS(region, file.path("data","region.rds"))
 
