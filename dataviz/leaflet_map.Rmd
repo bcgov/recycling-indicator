@@ -27,6 +27,9 @@ library(envreportutils)
 
 
 reg_dist <- read_rds("./data/reg_dist.rds") 
+reg_dist <- reg_dist %>% 
+   group_by(regional_district) %>%
+   filter(year == "2017" )
 
 
 ```
@@ -45,32 +48,30 @@ recmap <- leaflet(width = "900px", height = "600px",
 ```
 
 ## Recycling Per Region 
+
 ```{r}
 # define the map styling
 
 palette1 <- colorNumeric(palette = 'viridis', reg_dist$n.kg.pop, reverse = TRUE)
 
-# define labels 
-#labels <- reg_dist$regional_district
+# Define labels 
+labels <- reg_dist$regional_district
 
+# Popup figures 
+trend_popups <- paste0("<img src = ", 
+                        paste0("./trend_plots/", 
+                               gsub("\\s+", "%20", reg_dist$regional_district), ".svg"), 
+                        ">")
+# set up popup list
+#trend_popups <-  leafpop::popupGraph(region_plot_list, type = "svg")
 
-
-
-# Popup for population tab
-popup_text2 <- dplyr::select(grizzdata_full, gbpu_name, gbpu.pop, 
-                               pop_density, use_area_sq_km,
-                              area_sq_km) %>% 
-  rename("Population Name" = gbpu_name,
-         "Population Size (Adults)" = gbpu.pop,
-         "Population Density (Adults/1000 km^2)" = pop_density,
-         "Area of Useable Habitat (km^2)" = use_area_sq_km,
-         "Total Area of GBPU (km^2)" = area_sq_km) 
-
-st_geometry(popup_text2) <- NULL 
-
-population_popup <- leafpop::popupTable(popup_text2,
-                                   row.numbers = F, 
-                                   feature.id = F)
+# Define popup options
+popup_options <-  popupOptions(maxWidth = 400, minWidth = 400, maxHeight = 300,
+                               autoPan = TRUE,
+                               keepInView = TRUE,
+                               closeOnClick = TRUE,
+                               autoPanPaddingTopLeft = c(120, 20),
+                               autoPanPaddingBottomRight = c(150,20))
 
 ```
 
@@ -83,32 +84,18 @@ recmap %>%
               fillOpacity = 0.5,
               fillColor = ~ palette1(n.kg.pop),
               highlightOptions = highlightOptions(fillOpacity = 0.9,
-                                                  weight = 2,
-                                                  bringToFront = FALSE),
+                                                  weight = 3,
+                                                  color = "yellow",
+                                                  bringToFront = T),
               label = labels,
               labelOptions = labelOptions(direction = "auto",
-                                          textsize = "12px")
-              #popup = temp_popups,
-              #popupOptions = popup_options
+                                          textsize = "12px"),
+              popup = trend_popups,
+              popupOptions = popup_options,
   ) %>%
-  addEasyButton(easyButton(
-    icon = htmltools::span('Reset Map'),
-    onClick = JS("function(btn, map) {
-                 map.closePopup();
-                 map.setView({lon: -126.5, lat: 54.5}, 5);
-                 // Close labels - they stay stuck open on mobile
-                 map.eachLayer(function (layer) {
-                 if (layer instanceof L.Polygon) {
-                 layer.label.close();
-                 }
-                 });
-                 }"),
-    position = "bottomleft", id = "reset-button")) 
-#%>%
-#   addLegend(position = "bottomleft", pal = palette1, values = ~ n.kg.pop,
-#            title = htmltools::HTML("Recycled<br/>material<br/>kg per<br/>capita"),
-#            labFormat = labelFormat(suffix = , between = "", digits = 3))
-
+   addLegend(position = "bottomleft", pal = palette1, values = reg_dist$n.kg.pop,
+            title = htmltools::HTML("Recycled material<br/>kg per<br/>capita (2017)"),
+            labFormat = labelFormat(suffix = , between = "", digits = 3))
 
 
 ```
