@@ -29,7 +29,6 @@ multi_plot <- function(plotdata, filename) {
   dev.off()
 }
 
-#multi_plot(overall_threat_plot, "./print_ver/othreat_plot")
 
 # Set plotting parameters common to many plots:
 x_scale <- scale_x_continuous(limits = c(2007-1, 2018+1),
@@ -37,46 +36,47 @@ x_scale <- scale_x_continuous(limits = c(2007-1, 2018+1),
                               expand = c(0,0))
 
 
-
 ## Basic plot one off plots for weight per capita per year
 reg.time.kg.cap <- ggplot(region, aes(year, n.kg.pop)) +
   facet_wrap(~ regional_district) +
   geom_bar(stat = "identity", position="dodge") +
-  labs(title = "Regional of recycling (tonnes) per capita",
-       x = "Year", y = "weight per cap (kg)") +
+  labs(x = "Year", y = "recycling (kg per person)") +
   x_scale +
   theme_soe_facet()
  # theme(axis.text.x = element_text(angle = 90))
 
 plot(reg.time.kg.cap)
 
-multi_plot(reg.time.kg.cap, "out/regional.kg.cap.facet")
+multi_plot(reg.time.kg.cap, "print_ver/regional.kg.cap.facet")
 
 
 # financial cost per tonne
 
 cost_plot <- ggplot(cost.per.tonne,
-                    aes(x = year,
+                    aes(x = as.numeric(year),
                         y = c.p.tonne, group = organization))+
   geom_line(aes(colour = type), size = 1.5) +
   xlab(NULL) + ylab ("Cost per tonne of recycling ($1,000)")+
-  ggtitle("Cost per tonne of recycled material")+
-  #theme(axis.text.x = element_text(angle = 90)) +
-  #scale_colour_manual(values = normpal, guide = FALSE) +
-  theme_soe()
+ # ggtitle("Cost per tonne of recycled material") +
+  scale_x_continuous(limits = c(2007, 2017),
+                                breaks = seq(2007, 2018, 1)) +
+                                #expand = c(0,0)) +
+  theme_soe() +
+  theme(legend.position = "none")
 
-  plot(cost_plot)
+cost_plot <- cost_plot +
+  annotate("text", label = "Beverage", colour = "#e41a1c",
+           x = 2008, y = 2, size = 5) +
+  annotate("text", label = "Pulp & Paper", colour = "#377eb8",
+           x = 2015, y = 0.6, size = 5) +
+  annotate("text", label = "Electrical", colour = "#4daf4a",
+           x = 2013.5, y = 2.2, size = 5)
+plot(cost_plot)
 
-  multi_plot(cost_plot, "out/cost.per.tonne")
 
-#  norm <- norm_base +
-#    annotate("text", label = "GDP", colour = "#e41a1c",
-#             x = 2004.1, y = 1.56, size = 5) +
-#    annotate("text", label = "GHG", colour = "#377eb8",
-#             x = 2010, y = 1.14, size = 5) +
-#    annotate("text", label = "Population", colour = "#4daf4a",
-#             x = 2009, y = 1.41, size = 5)
-#  plot(norm)
+multi_plot(cost_plot, "print_ver/cost.per.tonne")
+
+
 
 
 
