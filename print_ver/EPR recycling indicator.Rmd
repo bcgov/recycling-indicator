@@ -7,45 +7,113 @@ params:
 
 ---
 
-# Background 
+<!--
+Copyright 2018 Province of British Columbia
 
-The dataset provide as part of environment reporting legislation requirements in pdf format and has been transposed to an excel format. Detailed information about the program can be found [here](https://www2.gov.bc.ca/gov/content/environment/waste-management/recycling/product-stewardship).
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-This indicator will be replacing the [tire recycling indicator](https://www2.gov.bc.ca/gov/content/environment/research-monitoring-reporting/reporting/environmental-reporting-bc/sustainability-indicators).
+http://www.apache.org/licenses/LICENSE-2.0
 
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and limitations under the License.
+-->
 
+```{r set-options, echo=FALSE, cache=FALSE, warning=FALSE, message=FALSE}
 
-```{r echo = FALSE, include=params$draft, results='asis'}
-cat("\\begin{center}
-\\fbox{
-  \\begin{minipage}[c]{14cm}
- 
-   \\begingroup\\centering{\\textbf{DRAFT – NOT FOR DISTRIBUTION}}
-   
-    \\endgroup
-    
-    \\vspace{1mm}
-   
-    \\text{This DRAFT public reporting product is under review and may change. It is not intended}
-    \\text{to be shared, cited or used at this time. Please contact Environmental Reporting BC program}
-    \\text{staff if you have questions about the content. }
-   
-  \\end{minipage}
-}
-\\end{center}")
-```
-
-
-
-
-
-
-```{r echo=FALSE, message=FALSE}
 library(ggplot2)
-ggplot(mtcars, aes(x = hp, y = mpg)) + 
-  geom_point() + 
-  geom_smooth()
+library(envreportutils) #for theme_soe and theme_soe_facet
+library(RColorBrewer)
+library(dplyr)
+library(knitr)
+library(envreportutils.internal)
+
+
+## Read in plotting objects from 03_output.R if not already in environment
+#if (!exists("ghg_time")) load(here("tmp", "plots.RData"))
+#if (!exists("ghg_est")) load(here("tmp", "clean_data.RData"))
+
+
 ```
+
+* **Recycling across British Columbia  ** 
+
+
+* In 200X, British Columbia adopted an evironemental policy appraoch to account for the whole life ccyle of a product. This approach adopted in a other international countries is called the [Extended Producer Responsibility Program](https://www2.gov.bc.ca/gov/content/environment/waste-management/recycling/product-stewardship) and highlights the producers responsibility for reducing environmental impact. 
+
+
+* Key messages 
+
+EPR program saves on landfill space, financial data = jobs , commodities go baack into the economy 
+
+
+
+
+
+
+
+
+* This indicator will be replacing the [tire recycling indicator](https://www2.gov.bc.ca/gov/content/environment/research-monitoring-reporting/reporting/environmental-reporting-bc/sustainability-indicators).
+
+
+
+
+The following recycling types contained weight information (tonnes/kg) at a regional scale ; Beverage (2007-2017) , Electrical (Major Appliance recycling: 2015-2017, Batteries (2010 - 2017), Canadian Electrical Stewardship Association (2011- 2017)), Pharmaceutical (2008 - 2017) and PPP (packaging, printed, paper (2015-2017)). 
+
+
+\newpage 
+
+## Regional Recycling across B.C. 
+
+We compared recycling amounts (kg per person) for the regional districts across B.C. This included beverage recycling (2007 - 2017),  
+oil, filters, containes (2010 - 2017) * note these were pre calculated based on per person 
+
+electric (CESA, batteries (2010 - 2017), MMR (2015-2017))
+
+
+
+
+Each year companies report on total amount (tonnes) recyclied for each regional district.
+
+\vspace{.8cm}
+
+```{r plot1, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE, fig.cap = "Recycling per Region (kgs per person) ", results = 'asis', out.width='0.95\\linewidth', fig.align = 'center'}
+
+knitr::include_graphics("regional.kg.cap.facet.png")
+
+```
+
+
+## Cost of recycling 
+
+Across the province the cost to recycle a tonne of material varied per produce with lowest cost assigned to electrical (type 1), . The longest record of recycling was the Beverage containers which has remained steady over the last 10 years around $1,500 per tonne of containers.  
+
+
+
+```{r, plot2, echo = FALSE, warning = FALSE, fig.cap = "Cost per tonne of recycling material ($1000)" ,  out.width='0.95\\linewidth', fig.align = 'center'}
+
+knitr::include_graphics("cost.per.tonne.png")
+
+```
+
+
+# Methods 
+
+We combined annual reporting figures available for the following producers (beverage containers) ()
+
+
+Beverage containers 
+
+Containers were collected from multiple groups: Encorp Pacific (Canada), BC Brewers Recycles Collection Council. Both of these datasets contained metrics on the units collected, weight collection (tonnes) with population data from 2006 - 2017. There is also some financial data ( revenue/ expenditure /deposits charged / units moved) and other (CO2 Equivalent Reduced (tonnes), weight of material).
+
+Data exploration points to consider:
+•Regional and financial data grouped for Encorp and BCBRCC
+•BCBRC collection year time period differs (i.e. 2007/08, 2008/09,2009/10) with some data reported per financial years (March 31st). In these cases data was assigned to preceeding year.
+•Some data anomolied in Central Coast and Central Kootneys in 2015 were verified in pdf reports and found to be same as pdf report.
+
+
 
 Cum vivamus penatibus sed mus fringilla non sociosqu taciti ut. Sed, semper lacus justo ultricies penatibus praesent. Tortor vivamus fermentum libero, libero urna montes orci luctus ligula? Tellus et mauris sed a in lacinia imperdiet. Sed nec penatibus sed at mauris etiam. Interdum morbi arcu vitae lectus cubilia eros, imperdiet felis. Nisl, lacinia vel, nisl, rutrum ac, elementum felis. Dui ante eros ex mi, interdum velit accumsan sociosqu, tempus. Erat vulputate potenti nascetur. Malesuada, curabitur, leo himenaeos, molestie euismod sit. In vitae sollicitudin adipiscing commodo.
 
@@ -69,4 +137,4 @@ Published and Available On-Line at Environmental Reporting BC (Month Year):
 Email correspondence to: envreportbc@gov.bc.ca
 
 Suggested Citation:  
-Environmental Reporting BC. Year. Indicator Title. State of Environment Reporting, Ministry of Environment and Climate Change Strategy, British Columbia, Canada.
+Environmental Reporting BC. 2019. Indicator Title. State of Environment Reporting, Ministry of Environment and Climate Change Strategy, British Columbia, Canada.
