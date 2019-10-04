@@ -17,7 +17,8 @@ library(ggplot2)
 
 if (!exists("pop")) source("01_load.R")
 
-# format regional dataset --------------------
+
+# format raw data into long format
 
 tonnes <- c("Absolute Collection-Weight Collected (Tonnes)-",
             "Absolute collection - Regular products -Weight (kg)-",
@@ -25,7 +26,57 @@ tonnes <- c("Absolute Collection-Weight Collected (Tonnes)-",
             "Estimated Tonnes Collected", "tonnes of ppp",
             "Absolute Collection-Weight Collected (kg)-")
 
+all.regions <- all.regions %>%
+  filter(!regional_district == "Provincial Total",
+         !regional_district == "BC Average") %>%
+  gather("year", "n", 5:length(.)) %>%
+  mutate(n.kg = ifelse(str_detect(measure,"onnes"), n * 1000, n)) %>%
+  filter(!n == 0) %>%
+  filter(!measure == "Population-") %>%
+  left_join(pop, by = c("regional_district","year")) %>%
+  mutate(n.kg.pp = ifelse(str_detect(measure, "pp"), n, n.kg / pop))
+
+
+
+# calcaulate the total recycling (all types combined) ---------
+
 region <- all.regions %>%
+  filter(measure %in% tonnes) %>%
+  select(-c(organization)) %>%
+  group_by(type, measure, regional_district) %>%
+  summarise(n.kg = sum(n.kg, na.rm = TRUE), n.kg.pp = sum(n.kg.pp, na.rm = TRUE))
+
+
+
+
+## Basic plot one off plots for weight per capita per year
+reg.time.kg.cap <-
+
+  ggplot(region, aes(measure, n.kg.pp)) +
+  #facet_wrap(~ regional_district) +
+  geom_bar(stat = "identity", position="dodge") +
+  #labs(x = "Year", y = "recycling (kg per person)") +
+  #x_scale +
+  theme_soe_facet()
+# theme(axis.text.x = element_text(angle = 90))
+
+
+
+
+# older version
+#  group_by(regional_district, year) %>%
+#  summarise(n.kg.sum = sum(n.kg)) %>%
+#  left_join(pop, by = c("regional_district","year")) %>%
+#  filter(!regional_district == "Provincial Total") %>%
+#  mutate(n.kg.pop = n.kg.sum / pop,
+#         year = as.numeric(year))
+#saveRDS(region, file.path("data","region.rds"))
+
+
+
+# calcaulate the total recycling (all types combined) ---------
+
+region.type <- all.regions %>%
   filter(measure %in% tonnes) %>%
   select(-c(organization)) %>%
   group_by(type, measure, regional_district) %>%
@@ -33,30 +84,19 @@ region <- all.regions %>%
   gather("year", "n", 4:length(.)) %>%
   filter(!n == 0) %>%
   mutate(n.kg = ifelse(str_detect(measure,"onnes"), n * 1000, n)) %>%
-  group_by(regional_district, year) %>%
-  summarise(n.kg.sum = sum(n.kg)) %>%
+  #group_by(regional_district, year) %>%
+  #summarise(n.kg.sum = sum(n.kg)) %>%
   left_join(pop, by = c("regional_district","year")) %>%
   filter(!regional_district == "Provincial Total") %>%
-  mutate(n.kg.pop = n.kg.sum / pop,
+  mutate(n.kg.pop = n.kg / pop,
          year = as.numeric(year))
 
-saveRDS(region, file.path("data","region.rds"))
+saveRDS(region, file.path("data","region.type.rds"))
 
 
-# get tonnes per recycling type
 
-tot.region <- all.regions %>%
-  filter(measure %in% tonnes) %>%
-  filter(!regional_district == "Provincial Total") %>%
-  group_by(organization, type, measure, regional_district) %>%
-  summarise_all(sum, na.rm = TRUE) %>%
-  gather("year", "n", 5:length(.)) %>%
-  filter(!n == 0) %>%
-  mutate(n.kg = ifelse(str_detect(measure,"onnes"), n * 1000, n)) %>%
-  group_by(organization, type,year) %>%
-  summarise(n.kg.sum = sum(n.kg))
 
-saveRDS(tot.region , file.path("data","tot.region.rds"))
+
 
 
 ## format financial dataset --------------------
