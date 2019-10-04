@@ -25,8 +25,8 @@ library(lwgeom)
 ## Get British Columbia EPR Data sets from B.C. Data Catalogue
 ## data not currently stored on catalogue
 
-data.dir <- soe_path("Operations ORCS/Data- Working/sustainability/EPR/")# to run on O:/
-
+#data.dir <- soe_path("Operations ORCS/Data- Working/sustainability/EPR/")# to run on O:/
+data.dir <- "C:/Temp/Github/recycling-indicator"
 
 if (!file.exists(file.path("data/all.regions.csv"))) {
   source(file.path(scratch, 'clean_readxl.R'))
@@ -34,12 +34,11 @@ if (!file.exists(file.path("data/all.regions.csv"))) {
 
 }
 
-data.dir = "data"
+data.dir = "C:/Temp/Github/recycling-indicator/data"
 
 all.regions <- read_csv(file.path(data.dir,'all.regions.csv'))
 
 all.finance <- read_csv(file.path(data.dir,'all.finance.csv'))
-
 
 
 # Read in population data -------------------------------
