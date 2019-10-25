@@ -18,13 +18,8 @@ library(ggplot2)
 if (!exists("pop")) source("01_load.R")
 
 
-# format raw data into long format
+# format recycling volume data --------------------------------------------
 
-tonnes <- c("Absolute Collection-Weight Collected (Tonnes)-",
-            "Absolute collection - Regular products -Weight (kg)-",
-            "Absolute collection - batteries (kg)",
-            "Estimated Tonnes Collected", "tonnes of ppp",
-            "Absolute Collection-Weight Collected (kg)-")
 
 all.regions <- all.regions %>%
   filter(!regional_district == "Provincial Total",
@@ -36,71 +31,27 @@ all.regions <- all.regions %>%
   left_join(pop, by = c("regional_district","year")) %>%
   mutate(n.kg.pp = ifelse(str_detect(measure, "pp"), n, n.kg / pop))
 
-
-
 # calcaulate the total recycling (all types combined) ---------
+ measures.to.exclude <- c("Absolute collection - smoke and CO alarms",
+                          "Absolute collection - number of thermostats",
+                           "Absolute collection - number of loose vessels",
+                        "Absolute collection - adjusted number of thermostats",
+                        "Absolute Collection- Total Tubskids",
+                        "Absolute Collection-Units Collected-",
+                        "Absolute Collection-Number of Containers-",
+                        "Absolute collection - estimate of units")
+
+
+# calculate totals (all years, and per year)
 
 region <- all.regions %>%
-  filter(measure %in% tonnes) %>%
-  select(-c(organization)) %>%
-  group_by(type, measure, regional_district) %>%
+  filter(!measure %in%  measures.to.exclude) %>%
+  group_by(type, measure, year, regional_district) %>%
   summarise(n.kg = sum(n.kg, na.rm = TRUE), n.kg.pp = sum(n.kg.pp, na.rm = TRUE))
 
+saveRDS(region , file.path("data","region.rds"))
 
-
-
-## Basic plot one off plots for weight per capita per year
-reg.time.kg.cap <-
-
-  ggplot(region, aes(measure, n.kg.pp)) +
-  #facet_wrap(~ regional_district) +
-  geom_bar(stat = "identity", position="dodge") +
-  #labs(x = "Year", y = "recycling (kg per person)") +
-  #x_scale +
-  theme_soe_facet()
-# theme(axis.text.x = element_text(angle = 90))
-
-
-
-
-# older version
-#  group_by(regional_district, year) %>%
-#  summarise(n.kg.sum = sum(n.kg)) %>%
-#  left_join(pop, by = c("regional_district","year")) %>%
-#  filter(!regional_district == "Provincial Total") %>%
-#  mutate(n.kg.pop = n.kg.sum / pop,
-#         year = as.numeric(year))
-#saveRDS(region, file.path("data","region.rds"))
-
-
-
-# calcaulate the total recycling (all types combined) ---------
-
-region.type <- all.regions %>%
-  filter(measure %in% tonnes) %>%
-  select(-c(organization)) %>%
-  group_by(type, measure, regional_district) %>%
-  summarise_all(sum, na.rm = TRUE) %>%
-  gather("year", "n", 4:length(.)) %>%
-  filter(!n == 0) %>%
-  mutate(n.kg = ifelse(str_detect(measure,"onnes"), n * 1000, n)) %>%
-  #group_by(regional_district, year) %>%
-  #summarise(n.kg.sum = sum(n.kg)) %>%
-  left_join(pop, by = c("regional_district","year")) %>%
-  filter(!regional_district == "Provincial Total") %>%
-  mutate(n.kg.pop = n.kg / pop,
-         year = as.numeric(year))
-
-saveRDS(region, file.path("data","region.type.rds"))
-
-
-
-
-
-
-
-## format financial dataset --------------------
-
+# format financial dataset ------------------------------------------------
 
 to.keep = c("Expenditure-Total", "Expenditures", "Revenue-Total","Revenues",
             "Revenue-Total (Including Deposits Charged)",
@@ -118,9 +69,14 @@ fdata <- all.finance %>%
                                      "Expenditure-Total (Including Deposits Returned)"),"Expenditure",
                                  ifelse(measure %in% c("Revenue-Total","Revenues",
                                                        "Revenue-Total (Including Deposits Charged)"),"Revenue",NA) )) %>%
-  filter(measure_consol == "Expenditure")
+  filter(measure_consol == "Expenditure") %>%
+  ungroup() %>%
+  select(-c(measure)) %>%
+  filter(!total.m == 0)
 
-# format spatial data : reg_dist
+saveRDS(fdata , file.path("data","fdata.rds"))
+
+# format spatial dataset --------------------------------------------------
 
 reg_dist$ADMIN_AREA_NAME[which(reg_dist$ADMIN_AREA_NAME %in%
                                  c("Comox Valley Regional District", "Strathcona Regional District"))] <- "Comox-Strathcona"
