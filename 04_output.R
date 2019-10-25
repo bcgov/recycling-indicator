@@ -52,9 +52,12 @@ multi_plot(reg.time.kg.cap, "print_ver/regional.kg.cap.facet")
 
 # financial cost per tonne
 
+cost.per.tonne <- cost.per.tonne %>%
+  filter(! type == "oil")
+
 cost_plot <- ggplot(cost.per.tonne,
                     aes(x = as.numeric(year),
-                        y = c.p.tonne, group = organization))+
+                        y = c.p.tonne, group = organization)) +
   geom_line(aes(colour = type), size = 1.5) +
   xlab(NULL) + ylab ("Cost per tonne of recycling ($1,000)")+
  # ggtitle("Cost per tonne of recycled material") +
