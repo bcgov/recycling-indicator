@@ -11,7 +11,7 @@
 # See the License for the specific language governing permissions and limitations under the License.
 
 ## Load in libraries
-
+library(ggplot2)
 library(readr)
 library(dplyr)
 library(envreportutils)
@@ -28,12 +28,12 @@ library(lwgeom)
 #data.dir <- soe_path("Operations ORCS/Data- Working/sustainability/EPR/")# to run on O:/
 
 if (!file.exists(file.path("all.regions.csv"))) {
-  source(file.path(scratch, 'clean_readxl.R'))
+  source(file.path("scratch", 'clean_readxl.R'))
 } else { "data is ready to load"
 
 }
 
-data.dir = "C:/Temp/Github/recycling-indicator/data"
+data.dir = "data"
 
 all.regions <- read_csv(file.path(data.dir,'all.regions.csv'))
 
