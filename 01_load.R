@@ -11,7 +11,6 @@
 # See the License for the specific language governing permissions and limitations under the License.
 
 ## Load in libraries
-library(ggplot2)
 library(readr)
 library(dplyr)
 library(envreportutils)
@@ -75,4 +74,5 @@ reg_dist <- combine_nr_rd() %>%
   st_transform(4326) %>%
   group_by(ADMIN_AREA_NAME,ADMIN_AREA_ABBREVIATION) %>%
   summarize()
+
 
