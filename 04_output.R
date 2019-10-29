@@ -37,6 +37,9 @@ x_scale <- scale_x_continuous(limits = c(2007-1, 2018+1),
 
 
 ## Basic plot one off plots for weight per capita per year
+
+
+
 reg.time.kg.cap <- ggplot(region, aes(year, n.kg.pop)) +
   facet_wrap(~ regional_district) +
   geom_bar(stat = "identity", position="dodge") +
