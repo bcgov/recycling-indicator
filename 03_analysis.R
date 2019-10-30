@@ -18,78 +18,41 @@ library(dplyr)
 if (!exists("region")) load("data/region.rds")
 
 
-# calculate total amounts for all years
+# Summaries for BC ---------------------------------------------------
 
+# 1) all years by type
 region.type <- region %>%
   group_by(type, regional_district) %>%
   summarise(n.kg.pp =  sum(n.kg.pp))
 
-## create a plot
-region.type.plot <-
-  ggplot(region.type, aes(regional_district, n.kg.pp)) +
-  facet_wrap(~ type, scales = "free_y") +
-  geom_bar(stat = "identity", position="dodge") +
-  theme_soe_facet() +
-  theme(axis.text.x = element_text(angle = 90))
+# 2) per year by type
+time.type <- region %>%
+  group_by(type, year) %>%
+  summarise(n.kg.pp =  sum(n.kg.pp))
 
-region.type.plot
+# Regional Summary --------------------------------------------------------
 
-multi_plot(region.type.plot, "print_ver/regional.type.facet")
+reg.sum <- region %>%
+  group_by(regional_district, year, type) %>%
+  summarise(n.kg.pp = sum(n.kg.pp))
 
+# get BC average per year and type
 
-
-
-## Basic plot one off plots for weight per capita per year
-reg.time.kg.cap <-
-  ggplot(region, aes(measure, n.kg.pp)) +
-  facet_wrap(~ type) +
-  geom_bar(stat = "identity", position="dodge") +
-  theme_soe_facet() +
-  theme(axis.text.x = element_text(angle = 90))
-
-# note ppp is disproportional amount collected
-
-reg.time.kg.cap.zoom <-
-  ggplot(region, aes(type, n.kg.pp)) +
-  facet_wrap(~ regional_district) +
-  geom_bar(stat = "identity", position="dodge") +
-  coord_cartesian(ylim = c(0,2000)) +
-  theme_soe_facet() +
-  theme(axis.text.x = element_text(angle = 90))
-
-
-region1 <- region %>%
-  filter(!type =="ppp")
-
-
-reg.type <-
-  ggplot(region1 , aes(type, n.kg.pp)) +
-  facet_wrap(~ regional_district) +
-  geom_bar(stat = "identity", position="dodge") +
-  theme_soe_facet() +
-  theme(axis.text.x = element_text(angle = 90))
-
-
-
-# calculate the provincial average per type of recycling
-
-bc.kg.ave <- region %>%
-  na.omit() %>%
-  group_by(type) %>%
+bc.ave <- reg.sum %>%
+  group_by(type, year) %>%
   summarise(bc_ave = mean(n.kg.pp))
 
-
 # join the regional and prov. ave data and calculate the difference
-diff.df <- region %>%
-  left_join(bc.kg.ave, by = 'type') %>%
-  mutate(delta = n.kg.pp - bc_ave) %>%
-  mutate(response = ifelse(delta < 0,"below", "above")) %>%
-  mutate(response = ifelse(delta == 0,"No data", response))
+ diff.df <- reg.sum %>%
+   left_join(bc.ave, by = c('type',"year")) %>%
+   mutate(delta = n.kg.pp - bc_ave) %>%
+   mutate(response = ifelse(delta < 0,"below", "above")) %>%
+   mutate(response = ifelse(delta == 0,"No data", response))
 
+ saveRDS( diff.df, file.path("data","reg_diff.rds"))
 
 
 # Finance calculations ----------------------------------------------------
-
 
 # calculate cost per tonne fo recycling
 cost.per.tonne <- region %>%
@@ -106,40 +69,11 @@ cost.per.tonne <- region %>%
 
 
 
-# oil has a very high cost to recycle
-#data.check <- cost.per.tonne %>%
-#  group_by(organization, type) %>%
-#  summarise(ave = mean(c.p.tonne))
+# Spatial_regional dataset --------------------------------------------------------
 
+reg_dist <- read_rds("./data/reg_dist.rds")
 
-cost.per.tonne <- cost.per.tonne %>%
-  filter(! type == "oil")
-
-cost_plot <- ggplot(cost.per.tonne,
-                    aes(x = as.numeric(year),
-                        y = c.p.tonne, group = organization)) +
-  geom_line(aes(colour = type), size = 1.5) +
-  xlab(NULL) + ylab ("Cost per tonne of recycling ($1,000)")+
-  # ggtitle("Cost per tonne of recycled material") +
-  scale_x_continuous(limits = c(2007, 2017),
-                     breaks = seq(2007, 2018, 1)) +
-  scale_y_continuous(limits = c(0, 2.5))+
-  #expand = c(0,0)) +
-  theme_soe() +
-  theme(legend.position = "none")
-
-cost_plot <- cost_plot +
-  annotate("text", label = "Beverage", colour = "#e41a1c",
-           x = 2008, y = 2, size = 5) +
-  annotate("text", label = "Pulp & Paper", colour = "#377eb8",
-           x = 2015, y = 0.6, size = 5) +
-  annotate("text", label = "Electrical", colour = "#4daf4a",
-           x = 2013.5, y = 2.2, size = 5)
-plot(cost_plot)
-
-
-multi_plot(cost_plot, "print_ver/cost.per.tonne")
-
-
+reg_dist <- reg_dist %>%
+  left_join(reg.sum, by = c("ADMIN_AREA_NAME" = "regional_district"))
 
 
