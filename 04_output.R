@@ -91,10 +91,7 @@ plot(cost_plot)
 multi_plot(cost_plot, "print_ver/cost.per.tonne")
 
 
-
-
-
-# create a pop-up map per region based on difference to BC average value
+# Create Pop-ups for leaflet plots  ---------------------------------------
 
 region_list <- unique(region$regional_district)
 region_plot_list <- vector(length = length(region_list), mode = "list")
