@@ -37,16 +37,18 @@ library(envreportutils.internal)
 * In 2007, British Columbia adopted the [Extended Producer Responsibility Program](https://www2.gov.bc.ca/gov/content/environment/waste-management/recycling/product-stewardship). This evironmental policy approach taskes into account the whole life cyle of a product and highlights the producers responsibility for reducing environmental impact. 
 
 
-* Key messages ; 
+* To add : Key messages ; 
   +  EPR program saves on landfill space, 
   + financial data = jobs , 
   + commodities go baack into the economy 
 
 
-* Companies are required to report annual on the amount of recycled material producted and associates cost. [Add links]
+* Companies report annually on the amount of recycled material producted and associates cost. [Add links]
 
 * We assessed regional trends in recycled materials across B.C. where comparable data was available. Recycling data (kg per person) was available for the following material types: Beverage (2007-2017) , Electrical (Major Appliance recycling: 2015-2017, Batteries (2010 - 2017), Canadian Electrical Stewardship Association (2011- 2017)), Pharmaceutical (2008 - 2017), Oil (filters, containers, antifreeze ) and PPP (packaging, printed, paper (2015-2017)).  
 
+
+\newpage 
 
 \vspace{.8cm}
 
@@ -57,20 +59,16 @@ knitr::include_graphics("regional.kg.cap.facet.png")
 ```
 
 
-* The amount of recyled material varied greatly with type of material. The greatest material recycled was packaging and printed paper, while consumable types were very low (Pharmaceutical) to high (oil and filters), with unusual results. 
+* The amount of recyled material varied greatly with type of material. The greatest material recycled (kg per person) was packaging and printed paper, while consumable materials ranged from very low (Pharmaceutical)  to high (oil and filters).  
 
-* Trending over time were compared for beverage and electronics 
-
-
+* In general the amount of material recycled increased over time, irrespective of the number of years of data available.  
 
 
+```{r type vs time all BC, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE, fig.cap = "Recycling per type over time of available data (kgs per person) ", results = 'asis', out.width='0.95\\linewidth', fig.align = 'center'}
 
+knitr::include_graphics("time.type.facet.png")
 
-
-
-
-
-
+```
 
 
 
@@ -78,15 +76,6 @@ knitr::include_graphics("regional.kg.cap.facet.png")
 
 ## Regional Recycling across B.C. 
 
-We compared recycling amounts (kg per person) for the regional districts across B.C. This included beverage recycling (2007 - 2017),  
-oil, filters, containes (2010 - 2017) * note these were pre calculated based on per person 
-
-electric (CESA, batteries (2010 - 2017), MMR (2015-2017))
-
-
-
-
-Each year companies report on total amount (tonnes) recyclied for each regional district.
 
 \vspace{.8cm}
 
@@ -97,13 +86,13 @@ knitr::include_graphics("regional.kg.cap.facet.png")
 ```
 
 
+
 ## Cost of recycling 
 
-Across the province the cost to recycle a tonne of material varied per produce with lowest cost assigned to electrical (MMR), . The longest record of recycling was the Beverage containers which has remained steady over the last 10 years around $1,500 per tonne of containers.  
+Across the province the cost to recycle a tonne of material varied per produce with lowest cost assigned to pulp and paper. The longest record of recycling was the Beverage containers which has remained steady over the last 10 years around $1,500 per tonne of containers.  
 
 
-
-```{r, plot2, echo = FALSE, warning = FALSE, fig.cap = "Cost per tonne of recycling material ($1000)" ,  out.width='0.95\\linewidth', fig.align = 'center'}
+```{r, plot3, echo = FALSE, warning = FALSE, fig.cap = "Cost per tonne of recycling material ($1000)" ,  out.width='0.95\\linewidth', fig.align = 'center'}
 
 knitr::include_graphics("cost.per.tonne.png")
 
