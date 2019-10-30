@@ -22,7 +22,6 @@ if (!exists("pop")) source("01_load.R")
 
 all.regions <- read_csv(file.path(data.dir,'all.regions.csv'))
 
-
 all.regions <- all.regions %>%
   filter(!regional_district == "Provincial Total",
          !regional_district == "BC Average") %>%
@@ -33,25 +32,23 @@ all.regions <- all.regions %>%
   left_join(pop, by = c("regional_district","year")) %>%
   mutate(n.kg.pp = ifelse(str_detect(measure, "pp"), n, n.kg / pop))
 
+
 # calcaulate the total recycling (all types combined) ---------
 
  measures.to.exclude <- c("Absolute collection - smoke and CO alarms",
                           "Absolute collection - number of thermostats",
-                           "Absolute collection - number of loose vessels",
-                        "Absolute collection - adjusted number of thermostats",
-                        "Absolute Collection- Total Tubskids",
-                        "Absolute Collection-Units Collected-",
-                        "Absolute Collection-Number of Containers-",
-                        "Absolute collection - estimate of units",
-                        "Estimated Tonnes Collected")
+                          "Absolute collection - number of loose vessels",
+                          "Absolute collection - adjusted number of thermostats",
+                          "Absolute Collection- Total Tubskids",
+                          "Absolute Collection-Units Collected-",
+                          "Absolute Collection-Number of Containers-",
+                          "Absolute collection - estimate of units",
+                          "Estimated Tonnes Collected")
 
 
 # calculate totals (all years, and per year)
-
 region <- all.regions %>%
-  filter(!measure %in%  measures.to.exclude) #%>%
-#  group_by(type, measure, year, regional_district) %>%
-#  summarise(n.kg.pp = sum(n.kg.pp, na.rm = TRUE))
+  filter(!measure %in% measures.to.exclude)
 
 saveRDS(region , file.path("data","region.rds"))
 
@@ -99,10 +96,8 @@ reg_dist$ADMIN_AREA_NAME %<>%
   str_replace("-", " ") %>%
   str_replace("qathet", "Qathet")
 
-# might need more changes ?? as no population data for regional districts
+reg_dist <- reg_dist %>%
+  mutate(regional_district = ADMIN_AREA_NAME)
 
-#reg_dist <- reg_dist %>%
-#  left_join(region, by = c("ADMIN_AREA_NAME" = "regional_district")) %>%
-#  mutate(regional_district = ADMIN_AREA_NAME)
 
 saveRDS(reg_dist , file.path("data","reg_dist.rds"))
