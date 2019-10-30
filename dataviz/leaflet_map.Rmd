@@ -5,9 +5,11 @@ output:
 ---
 
 
-```{r echo = FALSE, include=params$draft, results='asis'}
+```{r setup, include = FALSE, warning = FALSE}
 
 knitr::opts_chunk$set(echo = TRUE)
+
+# read in libraries
 
 library(here)
 library(tidyverse)
@@ -23,22 +25,17 @@ library(viridis)
 # SOE + popups
 library(envreportutils)
 
-# load data 
+# Load data 
 
-
-reg_dist <- read_rds("./data/reg_dist.rds") 
-reg_dist <- reg_dist %>% 
-   group_by(regional_district) %>%
-   filter(year == "2017" )
-
+reg_dist <- read_rds("C:/Temp/Github/recycling-indicator/data/reg_dist_sum.rds")
 
 ```
 
 
-
 # {.tabset .tabset-fade}
 
-```{r grizz_map, warning=FALSE, echo=FALSE}
+```{r grizz_map, warning = FALSE, echo = FALSE}
+
 recmap <- leaflet(width = "900px", height = "600px", 
                     options = leafletOptions(minZoom = 5)) %>%  # generate leaflet map
   addProviderTiles(providers$Stamen.Terrain, group = "Terrain") %>%
@@ -47,26 +44,64 @@ recmap <- leaflet(width = "900px", height = "600px",
 
 ```
 
-## Recycling Per Region 
+## Total Recycling (2008-2017)
 
-```{r}
+```{r, echo = FALSE}
+
 # define the map styling
-
-palette1 <- colorNumeric(palette = 'viridis', reg_dist$n.kg.pop, reverse = TRUE)
+palette1 <- colorNumeric(palette = 'viridis', unique(reg_dist$n.kg.pp.total)) 
+palette2 <- colorNumeric(palette = 'viridis', reg_dist$Beverage, reverse = TRUE)
+palette3 <- colorNumeric(palette = 'viridis', reg_dist$Oil, reverse = TRUE)
+palette4 <- colorNumeric(palette = 'viridis', reg_dist$Pharmaceuticals, reverse = TRUE)
+palette5 <- colorNumeric(palette = 'viridis', reg_dist$Electric, reverse = TRUE)
+palette6 <- colorNumeric(palette = 'viridis', reg_dist$`Paper and Pulp`, reverse = TRUE)
 
 # Define labels 
-labels <- reg_dist$regional_district
+#labels <- reg_dist_totals$regional_district
 
-# Popup figures 
-trend_popups <- paste0("<img src = ", 
+label_total <- reg_dist %>%
+  mutate(n.kg.pp.total = round(n.kg.pp.total, 0))
+
+st_geometry(label_total) <- NULL # as dfreg_dist_totals
+
+label1 <- lapply(seq(nrow(label_total)), function(i) {
+  paste0( '<b>', label_total[i, "regional_district"], ', ',  
+         label_total[i, "n.kg.pp.total"], '</b>') 
+})
+
+label_basic <- reg_dist$regional_district
+
+# bev Popup figures 
+bev_popups <- paste0("<img src = ", 
                         paste0("./trend_plots/", 
-                               gsub("\\s+", "%20", reg_dist$regional_district), ".svg"), 
+                               gsub("\\s+", "%20", reg_dist$regional_district), "_bev.svg"), 
                         ">")
-# set up popup list
-#trend_popups <-  leafpop::popupGraph(region_plot_list, type = "svg")
+
+# bev Popup figures 
+oil_popups <- paste0("<img src = ", 
+                        paste0("./trend_plots/", 
+                               gsub("\\s+", "%20", reg_dist$regional_district), "_oil.svg"), 
+                        ">")
+
+pharm_popups <- paste0("<img src = ", 
+                        paste0("./trend_plots/", 
+                               gsub("\\s+", "%20", reg_dist$regional_district), "_pharm.svg"), 
+                        ">")
+
+elect_popups <- paste0("<img src = ", 
+                        paste0("./trend_plots/", 
+                               gsub("\\s+", "%20", reg_dist$regional_district), "_elect.svg"), 
+                        ">")
+
+
+ppp_popups <- paste0("<img src = ", 
+                        paste0("./trend_plots/", 
+                               gsub("\\s+", "%20", reg_dist$regional_district), "_ppp.svg"), 
+                        ">")
+
 
 # Define popup options
-popup_options <-  popupOptions(maxWidth = 400, minWidth = 400, maxHeight = 300,
+popup_options <-  popupOptions(maxWidth = 400, minWidth = 400, maxHeight = 600,
                                autoPan = TRUE,
                                keepInView = TRUE,
                                closeOnClick = TRUE,
@@ -79,47 +114,109 @@ popup_options <-  popupOptions(maxWidth = 400, minWidth = 400, maxHeight = 300,
 ```{r echo=FALSE, message=FALSE}
 
 recmap %>%
-  addPolygons(data = reg_dist, group = "Regional Districts",
+  addPolygons(data = reg_dist, group = "regional_district",
               stroke = T, weight = 1, color = "black",
               fillOpacity = 0.5,
-              fillColor = ~ palette1(n.kg.pop),
+              fillColor = ~ palette1(n.kg.pp.total),
               highlightOptions = highlightOptions(fillOpacity = 0.9,
                                                   weight = 3,
                                                   color = "yellow",
                                                   bringToFront = T),
-              label = labels,
+              label = lapply(label1, htmltools::HTML),
+              labelOptions = labelOptions(direction = "auto",
+                                          textsize = "12px")) %>%
+   addLegend(position = "bottomleft", pal = palette1, values = reg_dist$n.kg.pp.total, 
+            title = htmltools::HTML("Recycled material<br/>kg per<br/> (2008 - 2017"),
+            labFormat = labelFormat(suffix = , between = "", digits = 3))
+
+```
+
+
+## Recycling Types
+
+```{r, echo = F}
+
+recmap %>%
+  addPolygons(data = reg_dist,
+              stroke = T, weight = 1, color = "black",
+              fillOpacity = 0.5,
+              fillColor = ~ palette2(Beverage), 
+              highlightOptions = highlightOptions(fillOpacity = 0.9,
+                                                  weight = 3,
+                                                  color = "yellow",
+                                                  bringToFront = T),
+              label = label_basic,
               labelOptions = labelOptions(direction = "auto",
                                           textsize = "12px"),
-              popup = trend_popups,
+              popup = bev_popups,
               popupOptions = popup_options,
-  ) %>%
-   addLegend(position = "bottomleft", pal = palette1, values = reg_dist$n.kg.pop,
-            title = htmltools::HTML("Recycled material<br/>kg per<br/>capita (2017)"),
-            labFormat = labelFormat(suffix = , between = "", digits = 3))
+              group = "Beverage") %>% 
+  addPolygons(data = reg_dist,
+              stroke = T, weight = 1, color = "black",
+              fillOpacity = 0.5,
+              fillColor = ~ palette3(Oil), 
+              highlightOptions = highlightOptions(fillOpacity = 0.9,
+                                                  weight = 3,
+                                                  color = "yellow",
+                                                  bringToFront = T),
+              label = label_basic,
+              labelOptions = labelOptions(direction = "auto",
+                                          textsize = "12px"),
+              popup = oil_popups,
+              popupOptions = popup_options, 
+              group = "Oil") %>%
+  addPolygons(data = reg_dist,
+              stroke = T, weight = 1, color = "black",
+              fillOpacity = 0.5,
+              fillColor = ~ palette4(Pharmaceuticals), 
+              highlightOptions = highlightOptions(fillOpacity = 0.9,
+                                                   weight = 3,
+                                                   color = "yellow",
+                                                   bringToFront = T),
+               label = label_basic,
+               labelOptions = labelOptions(direction = "auto",
+                                           textsize = "12px"),
+               popup = pharm_popups,
+               popupOptions = popup_options, 
+               group = "Pharmaceuticals") %>%
+    addPolygons(data = reg_dist,
+              stroke = T, weight = 1, color = "black",
+              fillOpacity = 0.5,
+              fillColor = ~ palette5(Electric), 
+              highlightOptions = highlightOptions(fillOpacity = 0.9,
+                                                   weight = 3,
+                                                   color = "yellow",
+                                                   bringToFront = T),
+               label = label_basic,
+               labelOptions = labelOptions(direction = "auto",
+                                           textsize = "12px"),
+               popup = elect_popups,
+               popupOptions = popup_options, 
+               group = "Electric") %>%
+    addPolygons(data = reg_dist,
+              stroke = T, weight = 1, color = "black",
+              fillOpacity = 0.5,
+              fillColor = ~ palette6(`Paper and Pulp`), 
+              highlightOptions = highlightOptions(fillOpacity = 0.9,
+                                                   weight = 3,
+                                                   color = "yellow",
+                                                   bringToFront = T),
+               label = label_basic,
+               labelOptions = labelOptions(direction = "auto",
+                                           textsize = "12px"),
+               popup = ppp_popups ,
+                popupOptions = popup_options, 
+               group = "Paper and Pulp") %>%
+
+ addLayersControl(
+     baseGroups = c("Beverage","Oil","Pharmaceuticals","Electric","Paper and Pulp"),
+     options = layersControlOptions(collapsed = FALSE))
+                  
+#   addLegend("bottomright", pal = palette3, values = grizzdata_full$threat_class,
+#             title = "Threat Rank", na.label = "Extirpated",
+#             opacity = 1)
 
 
 ```
 
-Cum vivamus penatibus sed mus fringilla non sociosqu taciti ut. Sed, semper lacus justo ultricies penatibus praesent. Tortor vivamus fermentum libero, libero urna montes orci luctus ligula? Tellus et mauris sed a in lacinia imperdiet. Sed nec penatibus sed at mauris etiam. Interdum morbi arcu vitae lectus cubilia eros, imperdiet felis. Nisl, lacinia vel, nisl, rutrum ac, elementum felis. Dui ante eros ex mi, interdum velit accumsan sociosqu, tempus. Erat vulputate potenti nascetur. Malesuada, curabitur, leo himenaeos, molestie euismod sit. In vitae sollicitudin adipiscing commodo.
 
-## References and Other Useful Links
-
-* Link 1
-* Link 2
-
-## Data
-
-\*By accessing these datasets, you agree to the licence associated with each file, as indicated in parentheses below.
-
-* Data 1
-* Data 2
-
-----
-
-Published and Available On-Line at Environmental Reporting BC (Month Year):  
-[](http://www.env.gov.bc.ca/soe)
-
-Email correspondence to: envreportbc@gov.bc.ca
-
-Suggested Citation:  
-Environmental Reporting BC. Year. Indicator Title. State of Environment Reporting, Ministry of Environment and Climate Change Strategy, British Columbia, Canada.
