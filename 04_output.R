@@ -35,25 +35,31 @@ x_scale <- scale_x_continuous(limits = c(2007-1, 2018+1),
                               breaks = seq(2007, 2018, 5),
                               expand = c(0,0))
 
+# Summaries for BC ---------------------------------------------------
 
-## Basic plot one off plots for weight per capita per year
-
-
-
-reg.time.kg.cap <- ggplot(region, aes(year, n.kg.pop)) +
-  facet_wrap(~ regional_district) +
+## 1) all years by type
+region.type.plot <-
+  ggplot(region.type, aes(regional_district, n.kg.pp)) +
+  facet_wrap(~ type, scales = "free_y") +
   geom_bar(stat = "identity", position="dodge") +
-  labs(x = "Year", y = "recycling (kg per person)") +
-  x_scale +
-  theme_soe_facet()
- # theme(axis.text.x = element_text(angle = 90))
+  theme_soe_facet() +
+  theme(axis.text.x = element_text(angle = 90))
 
-plot(reg.time.kg.cap)
+multi_plot(region.type.plot, "print_ver/regional.type.facet")
 
-multi_plot(reg.time.kg.cap, "print_ver/regional.kg.cap.facet")
+# 2) per year by type
+
+time.type.plot <-
+  ggplot(time.type, aes(year, n.kg.pp)) +
+  facet_wrap(~ type, scales = "free_y") +
+  geom_bar(stat = "identity", position="dodge") +
+  theme_soe_facet() +
+  theme(axis.text.x = element_text(angle = 90))
+
+multi_plot(time.type.plot, "print_ver/time.type.facet")
 
 
-# financial cost per tonne
+# Cost Finance plots ------------------------------------------------------
 
 cost.per.tonne <- cost.per.tonne %>%
   filter(! type == "oil")
@@ -63,10 +69,11 @@ cost_plot <- ggplot(cost.per.tonne,
                         y = c.p.tonne, group = organization)) +
   geom_line(aes(colour = type), size = 1.5) +
   xlab(NULL) + ylab ("Cost per tonne of recycling ($1,000)")+
- # ggtitle("Cost per tonne of recycled material") +
+  # ggtitle("Cost per tonne of recycled material") +
   scale_x_continuous(limits = c(2007, 2017),
-                                breaks = seq(2007, 2018, 1)) +
-                                #expand = c(0,0)) +
+                     breaks = seq(2007, 2018, 1)) +
+  scale_y_continuous(limits = c(0, 2.5))+
+  #expand = c(0,0)) +
   theme_soe() +
   theme(legend.position = "none")
 
@@ -86,62 +93,42 @@ multi_plot(cost_plot, "print_ver/cost.per.tonne")
 
 
 
-# basic bar chart
-ggplot(fdata, aes(year, total.m, fill = measure_consol)) +
-  facet_wrap(~ type) +
-  geom_bar(stat="identity", position="dodge") +
-  labs(title="Expenditure per year",
-       x = "Year", y = "Amount ($1,000,000)") +
-  theme(axis.text.x = element_text(angle = 90))+
-  theme_soe_facet()
-
-
-
-
-ggplot(diff.df, aes(x = regional_district,
-                    y = delta,
-                    label = delta)) +
-  facet_wrap(~year) +
-  geom_bar(stat ='identity', aes(fill = response), width = .5)  +
-  scale_fill_manual(name ="Total Recycling Quantity",
-                    labels = c("Above Average", "Below Average", "No Data"),
-                    values = c("above" = "#008000", "below"="#FF0000", "no data" = 'grey')) +
-  labs(title= "Regional difference from BC Ave",
-       subtitle = " Bev units per capita") +
-  coord_flip()
-
-
-
-# create the graphics for leaflet map
-
 # create a pop-up map per region based on difference to BC average value
 
 region_list <- unique(region$regional_district)
 region_plot_list <- vector(length = length(region_list), mode = "list")
 names(region_plot_list) <- region_list
 
-
 # Create plotting function
-temp_plots <- function(data, name) {
-  make_plot <- ggplot(data) +
-    geom_bar(aes(x = year , y = n.kg.pop), stat = "identity") +
-    geom_point(aes(x = year, y = bc_ave), colour = "red") +
-    labs(x = "Year", y = "kg per capital") + # Legend text
-    ggtitle(paste("Reported Recycling for "
-                  , n
-                  ,sep = "")) +
+temp_plots <- function(pdata, name) {
+  make_plot <- ggplot() +
+    geom_bar(data = pdata,  aes(x = year, y = n.kg.pp), fill = "grey", stat ="identity", position="dodge") +
+    geom_point(data = pdata, aes(x = year, y = bc_ave), size = 2, color = "blue") +
+    geom_line(data = pdata, aes(x = year, y = bc_ave), group = "regional_district", color = "blue") +
+    labs(title = n, x = "Year", y = "kg per person") +
     theme_soe() + theme(plot.title = element_text(hjust = 0.5), # Centre title
-                        legend.position = "bottom",
-                        plot.caption = element_text(hjust = 0)) # L-align caption
+                legend.position = "bottom",
+                plot.caption = element_text(hjust = 0)) # L-align caption
   make_plot
 }
 
-# Lopo through the regional districts
-plots <- for (n in region_list) {
-  print(n)
-  data <- filter(diff.df, regional_district == n)
-  p <- temp_plots(data, n)
-  region_plot_list [[n]] <- p
-  ggsave(p, file = paste0("dataviz/trend_plots/", n, ".svg"))
+# loop through each type and generate the plots per
+
+types <- unique(region$type)
+
+for (t in types) {
+  print(t)
+
+  # Lopo through the regional districts : bev
+  plots <- for (n in region_list) {
+    # n = region_list[2]
+    print(n)
+    pdata <- filter(diff.df, regional_district == n & type == t)
+    p <- temp_plots(pdata, n)
+    region_plot_list [[n]] <- p
+    ggsave(p, file = paste0("dataviz/trend_plots/", n, "_",t,".svg"))
+  }
+
 }
+
 
