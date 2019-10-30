@@ -17,6 +17,7 @@ library(RColorBrewer)
 library(ggplot2) #plotting
 library(envreportutils)
 
+if (!exists("region")) source("03_analysis.R")
 
 # create a function for outputting plots
 multi_plot <- function(plotdata, filename) {
