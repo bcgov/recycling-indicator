@@ -30,11 +30,24 @@ time.type <- region %>%
   group_by(type, year) %>%
   summarise(n.kg.pp =  sum(n.kg.pp))
 
+
+
 # Regional Summary --------------------------------------------------------
 
 reg.sum <- region %>%
   group_by(regional_district, year, type) %>%
   summarise(n.kg.pp = sum(n.kg.pp))
+
+reg.sum.wide <- reg.sum %>%
+  spread(., type, n.kg.pp) %>%
+  group_by(regional_district) %>%
+  summarise_if(is.numeric, sum, na.rm = TRUE)
+
+reg.total <- reg.sum %>%
+  group_by(regional_district) %>%
+  summarise(n.kg.pp.total = sum(n.kg.pp))
+
+reg.sum.wide <- left_join(reg.sum.wide, reg.total)
 
 # get BC average per year and type
 
@@ -51,10 +64,8 @@ bc.ave <- reg.sum %>%
 
  saveRDS( diff.df, file.path("data","reg_diff.rds"))
 
-
 # Finance calculations ----------------------------------------------------
 
-# calculate cost per tonne fo recycling
 cost.per.tonne <- region %>%
   group_by(type, organization, year) %>%
   summarise(n.kg.sum = sum(n.kg)) %>%
@@ -68,12 +79,18 @@ cost.per.tonne <- region %>%
                                ifelse(type == "oil", "oil", organization)))
 
 
-
 # Spatial_regional dataset --------------------------------------------------------
 
-reg_dist <- read_rds("./data/reg_dist.rds")
+# set up a temporal data set for spatial data
+reg_dist <- read_rds(file.path("data","reg_dist.rds"))
 
 reg_dist <- reg_dist %>%
-  left_join(reg.sum, by = c("ADMIN_AREA_NAME" = "regional_district"))
+  left_join(reg.sum.wide) %>%
+  rename(Beverage = bev,
+         Electric = elect,
+         Pharmaceuticals = pharm,
+         `Paper and Pulp` = ppp,
+         Oil = oil)
 
 
+saveRDS(reg_dist, file.path("data","reg_dist_sum.rds"))
