@@ -153,3 +153,17 @@ for (t in types) {
 }
 
 
+# Static Map for print version --------------------------------------------
+
+bev_smap <- ggplot(reg_dist) +
+  geom_sf(data = bc_bound(), fill = NA, color = "grey", size = 0.2) +
+  geom_sf(aes(fill = Beverage), alpha = 0.8)  +
+  scale_fill_viridis_c(alpha = 0.9,
+                       option = "viridis", direction = 1,
+                       na.value = "light grey", trans = "reverse") +
+  labs(fill = "Beverages") +
+  theme_minimal() +
+  theme(legend.position = c(0.1, 0.25))
+
+
+multi_plot(bev_smap, "./print_ver/bev_splot")
