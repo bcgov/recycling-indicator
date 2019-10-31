@@ -148,7 +148,7 @@ for (t in types) {
                         plot.caption = element_text(hjust = 0),
                         axis.text.x = element_blank()) # L-align caption
 
-  ggsave(make_plot, file = paste0("dataviz/trend_plots/","facet_time_",t,".png"))
+  ggsave(make_plot, file = paste0("print_ver/","facet_time_",t,".png"))
 
 }
 
