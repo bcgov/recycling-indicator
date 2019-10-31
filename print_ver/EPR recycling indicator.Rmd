@@ -34,8 +34,7 @@ library(envreportutils.internal)
 ```
 
 
-* In 2007, British Columbia adopted the [Extended Producer Responsibility Program](https://www2.gov.bc.ca/gov/content/environment/waste-management/recycling/product-stewardship). This evironmental policy approach taskes into account the whole life cyle of a product and highlights the producers responsibility for reducing environmental impact. 
-
+* In 2007, British Columbia adopted the [Extended Producer Responsibility Program](https://www2.gov.bc.ca/gov/content/environment/waste-management/recycling/product-stewardship). This policy approach tasks into account the whole life cyle of a product and highlights the producers responsibility for reducing environmental impacts. 
 
 * To add : Key messages ; 
   +  EPR program saves on landfill space, 
@@ -43,14 +42,28 @@ library(envreportutils.internal)
   + commodities go baack into the economy 
 
 
-* Companies report annually on the amount of recycled material producted and associates cost. [Add links]
-
-* We assessed regional trends in recycled materials across B.C. where comparable data was available. Recycling data (kg per person) was available for the following material types: Beverage (2007-2017) , Electrical (Major Appliance recycling: 2015-2017, Batteries (2010 - 2017), Canadian Electrical Stewardship Association (2011- 2017)), Pharmaceutical (2008 - 2017), Oil (filters, containers, antifreeze ) and PPP (packaging, printed, paper (2015-2017)).  
+* We assessed regional and provincial trends in recyling across B.C, using publically available available annual reporting data. We quantified recycling per kilogram per person (kg.per.person) for the following recycling types; **Beverages** (2007-2017), **Electrical** (Major Appliance recycling: 2015-2017, Batteries (2010 - 2017), Canadian Electrical Stewardship Association (2011- 2017)), **Pharmaceutical** (2008 - 2017), **Oil** (filters, containers, antifreeze ) and **Pulp and Paper** (2015-2017).  
 
 
 \newpage 
 
-\vspace{.8cm}
+* The amount of recyled material varied greatly with type of material. The greatest material recycled (kg per person) was pulp and paper, while consumable materials ranged from very low (Pharmaceutical)to high (Oil)
+
+
+* In general the amount of material recycled increased over time, irrespective of the number of years of data available. 
+
+```{r type vs time all BC, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE, fig.cap = "Recycling by material type across B.C. (kgs per person) ", results = 'asis', out.width='0.95\\linewidth', fig.align = 'center'}
+
+knitr::include_graphics("time.type.facet.png")
+
+```
+
+
+\newpage 
+
+
+## Regional Recycling across B.C. 
+
 
 ```{r plot1, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE, fig.cap = "Recycling per type for all years of available data (kgs per person) ", results = 'asis', out.width='0.95\\linewidth', fig.align = 'center'}
 
@@ -59,37 +72,20 @@ knitr::include_graphics("regional.kg.cap.facet.png")
 ```
 
 
-* The amount of recyled material varied greatly with type of material. The greatest material recycled (kg per person) was packaging and printed paper, while consumable materials ranged from very low (Pharmaceutical)  to high (oil and filters).  
+```{r map1, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE, fig.cap = " Total beverage recycling per region (2008-2017)", results = 'asis', out.width='0.95\\linewidth', fig.align = 'center'}
 
-* In general the amount of material recycled increased over time, irrespective of the number of years of data available.  
-
-
-```{r type vs time all BC, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE, fig.cap = "Recycling per type over time of available data (kgs per person) ", results = 'asis', out.width='0.95\\linewidth', fig.align = 'center'}
-
-knitr::include_graphics("time.type.facet.png")
+knitr::include_graphics("bev_splot.png")
 
 ```
 
+*See appendices for details on regional trends per recyling type. 
 
 
 \newpage 
 
-## Regional Recycling across B.C. 
-
-
-\vspace{.8cm}
-
-```{r plot2, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE, fig.cap = "Recycling per Region (kgs per person) ", results = 'asis', out.width='0.95\\linewidth', fig.align = 'center'}
-
-knitr::include_graphics("regional.kg.cap.facet.png")
-
-```
-
-
-
 ## Cost of recycling 
 
-Across the province the cost to recycle a tonne of material varied per produce with lowest cost assigned to pulp and paper. The longest record of recycling was the Beverage containers which has remained steady over the last 10 years around $1,500 per tonne of containers.  
+Across the province the cost to recycle a tonne of material varied per produce with lowest cost assigned to pulp and paper. The longest record of recycling was the beverage containers which has remained steady over the last 10 years around $1,500 per tonne of containers.  
 
 
 ```{r, plot3, echo = FALSE, warning = FALSE, fig.cap = "Cost per tonne of recycling material ($1000)" ,  out.width='0.95\\linewidth', fig.align = 'center'}
@@ -99,21 +95,15 @@ knitr::include_graphics("cost.per.tonne.png")
 ```
 
 
-# Methods 
+\newpage 
 
-We combined annual reporting figures available for the following producers (beverage containers) 
+## Methods 
 
+* We combined raw annual amounts of recycling (tonnes or kg) for all available datasets with Population data obtained by [Stats Can](https://www.bcstats.gov.bc.ca/apps/PopulationEstimates.aspx). We included only weighed measure, ie. all estimated values were excluded from the analysis. 
 
-Beverage containers 
+* Where more than one company reported data on a particular recycling type, values were combined. This included beverage (Encorp Pacific, BC Brewers Recycles Collection Council) 
 
-Containers were collected from multiple groups: Encorp Pacific (Canada), BC Brewers Recycles Collection Council. Both of these datasets contained metrics on the units collected, weight collection (tonnes) with population data from 2006 - 2017. There is also some financial data ( revenue/ expenditure /deposits charged / units moved) and other (CO2 Equivalent Reduced (tonnes), weight of material).
-
-Data exploration points to consider:
-•Regional and financial data grouped for Encorp and BCBRCC
-•BCBRC collection year time period differs (i.e. 2007/08, 2008/09,2009/10) with some data reported per financial years (March 31st). In these cases data was assigned to preceeding year.
-•Some data anomolied in Central Coast and Central Kootneys in 2015 were verified in pdf reports and found to be same as pdf report.
-
-
+* Regional districts were combined where data was reported  
 
 
 ## References and Other Useful Links
@@ -137,3 +127,43 @@ Email correspondence to: envreportbc@gov.bc.ca
 
 Suggested Citation:  
 Environmental Reporting BC. 2019. Indicator Title. State of Environment Reporting, Ministry of Environment and Climate Change Strategy, British Columbia, Canada.
+
+
+\newpage 
+
+# Appendices 
+
+
+```{r, plot4, echo = FALSE, warning = FALSE, fig.cap =  "Regional Beverage recycling over time", out.width='0.95\\linewidth', fig.align = 'center'}
+
+knitr::include_graphics("facet_time_bev.png")
+
+
+```
+
+
+
+```{r, plot5, echo = FALSE, warning = FALSE, fig.cap = "Regional Oil recycling over time" ,  out.width='0.95\\linewidth', fig.align = 'center'}
+
+knitr::include_graphics("facet_time_oil.png")
+
+
+```
+
+
+
+```{r, plot6, echo = FALSE, warning = FALSE, fig.cap = "Regional Pharmacutical recycling over time",  out.width='0.95\\linewidth', fig.align = 'center'}
+
+knitr::include_graphics("facet_time_pharm.png")
+
+
+```
+
+
+
+```{r, plot7, echo = FALSE, warning = FALSE, fig.cap = "Regional Pulp and Paper recycling over time" ,  out.width='0.95\\linewidth', fig.align = 'center'}
+
+knitr::include_graphics("facet_time_ppp.png")
+
+
+```
