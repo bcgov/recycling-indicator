@@ -129,4 +129,27 @@ for (t in types) {
 
 }
 
+# Create combined plots for print version  ---------------------------------------
+
+for (t in types) {
+  print(t)
+
+  pdata <- filter(diff.df, type == t)
+
+  make_plot <- ggplot() +
+    facet_wrap(~ regional_district) +
+    geom_bar(data = pdata ,  aes(x = year, y = n.kg.pp), fill = "grey", stat ="identity", position="dodge") +
+    geom_point(data =  pdata , aes(x = year, y = bc_ave), size = 2, color = "blue") +
+    geom_line(data =  pdata , aes(x = year, y = bc_ave), group = "regional_district", color = "blue") +
+    #labs(title = n, x = "Year", y = "kg per person") +
+    theme(axis.text.x = element_blank()) +
+    theme_soe() + theme(plot.title = element_text(hjust = 0.5), # Centre title
+                        legend.position = "bottom",
+                        plot.caption = element_text(hjust = 0),
+                        axis.text.x = element_blank()) # L-align caption
+
+  ggsave(make_plot, file = paste0("dataviz/trend_plots/","facet_time_",t,".png"))
+
+}
+
 
